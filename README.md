@@ -1,8 +1,11 @@
 # TS4 Gallery Downloader (Modified)
 
-A **modified version** of [anadius’ “TS4 gallery downloader”](https://anadius.su/sims-4-gallery-downloader) script, which allows you to download households, lots, and rooms directly from *The Sims 4* Gallery website.  
-This fork primarily **fixes** a `RangeError` that occurred when certain `.dat` files were incomplete or “truncated” on EA’s servers.  
-The modified script now detects those truncated files, returns them **without** re-encoding, and logs warnings instead of crashing.
+A **modified version** of the widely used and highly respected [**“TS4 Gallery Downloader” script by anadius**](https://anadius.su/sims-4-gallery-downloader) — a trusted name in the Sims modding community known for tools that make *The Sims 4* more accessible and customizable.
+
+This version preserves all the powerful functionality of the original script, which allows players to **download households, lots, and rooms directly** from *The Sims 4* Gallery website.
+
+🔧 **What’s new in this fork?**  
+Just fixed the problem like `RangeError: Invalid typed array length` that occurred when the script tried to process broken or incomplete `.dat` files from EA servers. Now it skips re-encoding those files and logs a warning instead of crashing.
 
 ---
 
