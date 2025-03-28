@@ -22,7 +22,7 @@ The modified script now detects those truncated files, returns them **without** 
    - [Violentmonkey](https://violentmonkey.github.io/)
 
 2. **Install the script:**
-   - Click the **Intall** button: [**INSTALL**](https://raw.githubusercontent.com/nrksu1tan/TS4-gallery-downloader/main/sims-4-gallery-downloader-fixed.js)
+   - Click the **Intall** button: [**INSTALL**](https://raw.githubusercontent.com/nrksu1tan/TS4-gallery-downloader/main/sims-4-gallery-downloader-fixed.user.js)
 
 3. **Visit The Sims 4 Gallery:**
    - Supported on:  
