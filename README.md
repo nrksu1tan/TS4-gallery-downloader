@@ -22,11 +22,11 @@ The modified script now detects those truncated files, returns them **without** 
    - [Violentmonkey](https://violentmonkey.github.io/)
 
 2. **Install the script:**
-   - Click the **Intall** button: ## INSTALL
+   - Click the **Intall** button: [**INSTALL**](https://raw.githubusercontent.com/nrksu1tan/TS4-gallery-downloader/main/sims-4-gallery-downloader-fixed.js)
 
 3. **Visit The Sims 4 Gallery:**
    - Supported on:  
-     `https://www.ea.com/*/games/the-sims/the-sims-4/pc/gallery*`
+     `https://www.ea.com/ru-ru/games/the-sims/the-sims-4/pc/gallery`
 
 4. **Click “Download”:**
    - Each item tile will have a “Download” button that saves all tray files.
