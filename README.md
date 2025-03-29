@@ -29,8 +29,8 @@ Just fixed the problem like `RangeError: Invalid typed array length` that occurr
 
 | Version | Description | Link |
 |--------|-------------|------|
-| ✨ **Modded Version (Recommended)** | 🧩 Includes fix + styled “Download” button for easier use | [Install](https://raw.githubusercontent.com/nrksu1tan/TS4-gallery-downloader/main/sims-4-gallery-downloader-fixed.user.js) |
-| ⚙️ Fix Only (Upstream Patch) | ✅ Just the bugfix, for upstream author or contributors | [Install](https://github.com/nrksu1tan/TS4-gallery-downloader/raw/refs/heads/main/mod%20versions/TS4%20Gallery%20Downloader%20—%20Fixed%20&%20Enhanced-2.1.17.user.js) |
+| ✨ **Modded Version (Recommended)** | 🧩 Includes fix + styled “Download” button for easier use | [Install](https://github.com/nrksu1tan/TS4-gallery-downloader/raw/refs/heads/main/mod%20versions/TS4%20Gallery%20Downloader%20—%20Fixed%20&%20Enhanced-2.1.17.user.js) |
+| ⚙️ Fix Only (Upstream Patch) | ✅ Just the bugfix, for upstream author or contributors | [Install](https://raw.githubusercontent.com/nrksu1tan/TS4-gallery-downloader/main/sims-4-gallery-downloader-fixed.user.js) |
 
 > 🟢 **Normal users should use the *Modded Version*** — it's easier, prettier, and beginner-friendly.  
 > 🧠 **Original author or devs** should use the *Fix Only* version if reviewing for integration.
