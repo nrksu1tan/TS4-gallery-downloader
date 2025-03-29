@@ -27,19 +27,34 @@ Same great features — just more stable and stylish!
 
 ## 📦 Installation
 
-1. **Install a userscript manager:**
-   - [Tampermonkey](https://tampermonkey.net/) – recommended
-   - [Violentmonkey](https://violentmonkey.github.io/)
+1. **Install a userscript manager**  
+   You need one of these browser extensions to run the script:
+   - [Tampermonkey](https://tampermonkey.net/) – **recommended**
+   - [Violentmonkey](https://violentmonkey.github.io/) – alternative option
 
-2. **Choose the version that suits you best:**
+2. **Choose your version**
 
 | Version | Description | Link |
 |--------|-------------|------|
-| ✨ **Modded Version (Recommended)** | 🧩 Includes fix + styled “Download” button and better UI | [Install](https://github.com/nrksu1tan/TS4-gallery-downloader/raw/refs/heads/main/mod%20versions/TS4%20Gallery%20Downloader%20—%20Fixed%20&%20Enhanced.user.js) |
-| ⚙️ Fix Only (Upstream Patch) | ✅ Just the bugfix, for upstream author or contributors | [Install](https://raw.githubusercontent.com/nrksu1tan/TS4-gallery-downloader/main/sims-4-gallery-downloader-fixed.user.js) |
+| ✨ **Modded Version (Recommended)** | Includes the bugfix **+** a better UI and a styled "Download" button | [Install](https://github.com/nrksu1tan/TS4-gallery-downloader/raw/refs/heads/main/mod%20versions/TS4%20Gallery%20Downloader%20—%20Fixed%20&%20Enhanced.user.js) |
+| ⚙️ **Fix Only (Upstream Patch)** | Only fixes the bug — no UI changes | [Install](https://raw.githubusercontent.com/nrksu1tan/TS4-gallery-downloader/main/sims-4-gallery-downloader-fixed.user.js) |
 
-> 🟢 **Normal users should use the *Modded Version*** — it's easier, prettier, and beginner-friendly.  
-> 🧠 **Original author or devs** should use the *Fix Only* version if reviewing for integration.
+> 🟢 **Regular players should pick the *Modded Version*** — it's easier, looks better, and works the same.  
+> 🧠 **Script authors or advanced users** might prefer the *Fix Only* version to integrate upstream.
+
+3. **Go to the Sims 4 Gallery**  
+   Open [The Sims 4 Gallery website](https://www.ea.com/games/the-sims/the-sims-4/pc/gallery) and wait a few seconds.
+
+4. **Use the "Download" button**  
+   You’ll now see a custom **Download** button on every lot, room, or household. Click it — and a `.zip` will download automatically.
+
+5. **Install the downloaded content**  
+   - Unzip the file  
+   - Put all extracted files (`.trayitem`, `.blueprint`, `.bpi`, `.hhi`, `.sgi`, etc.) into:  
+     `Documents\Electronic Arts\The Sims 4\Tray`
+
+6. **Start the game**  
+   Open Sims 4 and check your Library in Build/Buy mode. Don’t forget to enable **"Include Custom Content"** in the filter if needed.
 
 ---
 
