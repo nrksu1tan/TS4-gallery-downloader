@@ -5,19 +5,25 @@ A **modified version** of the widely used and highly respected [**“TS4 Gallery
 This version preserves all the powerful functionality of the original script, which allows players to **download households, lots, and rooms directly** from *The Sims 4* Gallery website.
 
 🔧 **What’s new in this fork?**  
-Just fixed the problem like `RangeError: Invalid typed array length` that occurred when the script tried to process broken or incomplete `.dat` files from EA servers. Now it skips re-encoding those files and logs a warning instead of crashing.
+Fixed crashes when EA gives broken files — now the script just skips them and keeps downloading what works.  
+Plus: new design with smoother cards, a better-looking page, and a bright custom **Download** button that’s easy to find.  
+Same great features — just more stable and stylish!
+
 
 ---
 
-## 🛠️ What’s New in This Fork
+## 🛠️ What’s New in This Fork (v2.2)
 
-- ✅ **Truncated .dat check** – Prevents `RangeError: Invalid typed array length` by detecting and skipping corrupted `.dat` files.
-- ✅ **Graceful fallback** – If a `.dat` file is too short to re-encode, it is still included raw in the final `.zip`.
-- ✅ **Console feedback** – Clear warnings are shown in the browser console when data is invalid or incomplete.
-- ✅ **Optional UI enhancement** – A custom styled “Download” button is added for easier access (in the modded version).
-- ✅ **No breaking changes** – The rest of the script remains fully functional and compatible with working items.
+- 🚫 No more errors when downloading removed or broken items — the script just skips them.
+- 📁 Still downloads everything else and saves it in a .zip file.
+- 🔔 Shows helpful messages in the browser console if something doesn’t work.
+- 🎨 **New design!** Gallery items look cleaner and more modern with rounded corners, shadows, and a nicer background.
+- 🔘 Improved "Download" button — easier to see and use.
+- ✅ Everything else works the same — just more reliable and better looking.
 
 ---
+
+
 
 ## 📦 Installation
 
@@ -29,7 +35,7 @@ Just fixed the problem like `RangeError: Invalid typed array length` that occurr
 
 | Version | Description | Link |
 |--------|-------------|------|
-| ✨ **Modded Version (Recommended)** | 🧩 Includes fix + styled “Download” button for easier use | [Install](https://github.com/nrksu1tan/TS4-gallery-downloader/raw/refs/heads/main/mod%20versions/TS4%20Gallery%20Downloader%20—%20Fixed%20&%20Enhanced-2.1.17.user.js) |
+| ✨ **Modded Version (Recommended)** | 🧩 Includes fix + styled “Download” button and better UI | [Install](https://github.com/nrksu1tan/TS4-gallery-downloader/raw/refs/heads/main/mod%20versions/TS4%20Gallery%20Downloader%20—%20Fixed%20&%20Enhanced.user.js) |
 | ⚙️ Fix Only (Upstream Patch) | ✅ Just the bugfix, for upstream author or contributors | [Install](https://raw.githubusercontent.com/nrksu1tan/TS4-gallery-downloader/main/sims-4-gallery-downloader-fixed.user.js) |
 
 > 🟢 **Normal users should use the *Modded Version*** — it's easier, prettier, and beginner-friendly.  
