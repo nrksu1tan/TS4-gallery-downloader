@@ -8,7 +8,7 @@
 // @connect     athena.thesims.com
 // @connect     www.thesims.com
 // @connect     thesims-api.ea.com
-// @version     2.1.19
+// @version     2.2.1
 // @namespace   anadius.github.io
 // @grant       unsafeWindow
 // @grant       GM.xmlHttpRequest
@@ -336,6 +336,13 @@
         if(typeof messageClass.fields[key2] !== "undefined") {
             return key2;
         }
+
+        // Специальный костыль для dynamicAreas
+        if (key === 'dynamicAreas' || key2 === 'dynamic_areas') {
+            console.warn('dynamicAreas / dynamic_areas не существует в этом классе, пропускаю.');
+            return null;
+        }
+
         const nameParts = [];
         let msgClass = messageClass;
         while(msgClass.name !== "" && typeof msgClass.name !== "undefined") {
@@ -386,7 +393,10 @@
         const parsedMessage = {};
         for(let i=0; i<keys.length; i++) {
             const key = findKeyName(keys[i], messageClass);
-            parsedMessage[key] = parseValue(messageObj[keys[i]], messageClass.fields[key].type);
+            if (key !== null) {
+                parsedMessage[key] = parseValue(messageObj[keys[i]], messageClass.fields[key].type);
+            }
+
         }
         return [parsedMessage, messageClass];
     }
