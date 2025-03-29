@@ -1,4 +1,9 @@
 # TS4 Gallery Downloader (Modified)
+![Version](https://img.shields.io/badge/version-v2.2.1-blue?style=flat-square)
+![Userscript](https://img.shields.io/badge/works%20on-EA%20Gallery-5cba47?logo=ea&logoColor=white&style=flat-square)
+![Status](https://img.shields.io/badge/status-actively%20maintained-brightgreen?style=flat-square)
+![Built](https://img.shields.io/badge/built%20with-%E2%9D%A4%EF%B8%8F%20by%20nrksu1tan-orange?style=flat-square)
+
 
 A **modified version** of the widely used and highly respected [**“TS4 Gallery Downloader” script by anadius**](https://anadius.su/sims-4-gallery-downloader) — a trusted name in the Sims modding community known for tools that make *The Sims 4* more accessible and customizable.
 
@@ -12,18 +17,29 @@ Same great features — just more stable and stylish!
 
 ---
 
-## 🛠️ What’s New in This Fork (v2.2)
+## 🛠️ What’s New in This Fork (v2.2.1)
 
-- 🚫 No more errors when downloading removed or broken items — the script just skips them.
-- 📁 Still downloads everything else and saves it in a .zip file.
-- 🔔 Shows helpful messages in the browser console if something doesn’t work.
-- 🎨 **New design!** Gallery items look cleaner and more modern with rounded corners, shadows, and a nicer background.
-- 🔘 Improved "Download" button — easier to see and use.
-- ✅ Everything else works the same — just more reliable and better looking.
+- 🚫 **No more errors when downloading** — if a lot is broken or removed from the Gallery, the script just skips it without crashing.
+- 📁 **More reliable downloads** — everything that can be downloaded is saved into a `.zip` file, just like before.
+- 💬 **Helpful messages in the browser console** — if something doesn’t work, you’ll get a clear explanation (check DevTools).
+- 🎨 **New cleaner look!** Lot cards now have rounded corners, soft shadows, and a nicer background — more modern and easier to browse.
+- 🔘 **Improved Download button** — bigger, brighter, and easier to find and click.
+- 🧠 **Better compatibility with older/custom lots** — even rare or unusual uploads should download without issues now.
+- ✅ Everything else works the same — just more stable, more polished, and more user-friendly.
 
 ---
 
+## 🔄 Original vs Modded
+| Feature                     | Original Script | This Fork |
+|----------------------------|-----------------|-----------|
+| Download from Gallery      | ❌              | ✅        |
+| Skips broken lots          | ❌              | ✅        |
+| Custom Download button     | ❌              | ✅        |
+| New UI design              | ❌              | ✅        |
+| Helpful console messages   | ❌              | ✅        |
+| Actively maintained        | ❌              | ✅        |
 
+---
 
 ## 📦 Installation
 
@@ -33,6 +49,8 @@ Same great features — just more stable and stylish!
    - [Violentmonkey](https://violentmonkey.github.io/) – alternative option
 
 2. **Choose your version**
+
+
 
 | Version | Description | Link |
 |--------|-------------|------|
@@ -60,7 +78,7 @@ Same great features — just more stable and stylish!
 
 ## 📸 Button Preview
 
-Here is how the custom “Download” button looks in the modded version:
+Screenshot from the Gallery page with enhanced design:
 
 
 > ![image](https://raw.githubusercontent.com/nrksu1tan/TS4-gallery-downloader/refs/heads/main/assets/demo.png)
@@ -75,6 +93,18 @@ Here is how the custom “Download” button looks in the modded version:
 
 - If you see warnings like `Truncated .dat file` in the browser console, that means the Gallery item was removed or the file is corrupted on EA’s servers.
 - The script still downloads what it can, even for broken items.
+
+---
+
+## ✉️ Found a Bug or Issue?
+
+If you notice something broken, a missing button, or a specific lot that refuses to download — feel free to report it!
+
+📬 **Contact / Report Issues**:
+- [Open an issue on GitHub](https://github.com/nrksu1tan/TS4-gallery-downloader/issues)
+- Or message me directly on **Telegram**: [@nrksu1tan](https://t.me/nrksu1tan)
+
+Your feedback helps make the script better for everyone 💛
 
 ---
 
