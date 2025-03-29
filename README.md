@@ -14,6 +14,7 @@ Just fixed the problem like `RangeError: Invalid typed array length` that occurr
 - ✅ **Truncated .dat check** – Prevents `RangeError: Invalid typed array length` by detecting and skipping corrupted `.dat` files.
 - ✅ **Graceful fallback** – If a `.dat` file is too short to re-encode, it is still included raw in the final `.zip`.
 - ✅ **Console feedback** – Clear warnings are shown in the browser console when data is invalid or incomplete.
+- ✅ **Optional UI enhancement** – A custom styled “Download” button is added for easier access (in the modded version).
 - ✅ **No breaking changes** – The rest of the script remains fully functional and compatible with working items.
 
 ---
@@ -24,15 +25,28 @@ Just fixed the problem like `RangeError: Invalid typed array length` that occurr
    - [Tampermonkey](https://tampermonkey.net/) – recommended
    - [Violentmonkey](https://violentmonkey.github.io/)
 
-2. **Install the script:**
-   - Click the **Intall** button: [**INSTALL**](https://raw.githubusercontent.com/nrksu1tan/TS4-gallery-downloader/main/sims-4-gallery-downloader-fixed.user.js)
+2. **Choose the version that suits you best:**
 
-3. **Visit The Sims 4 Gallery:**
-   - Supported on:  
-     `https://www.ea.com/ru-ru/games/the-sims/the-sims-4/pc/gallery`
+| Version | Description | Link |
+|--------|-------------|------|
+| ✨ **Modded Version (Recommended)** | 🧩 Includes fix + styled “Download” button for easier use | [Install](https://raw.githubusercontent.com/nrksu1tan/TS4-gallery-downloader/main/sims-4-gallery-downloader-modded.user.js) |
+| ⚙️ Fix Only (Upstream Patch) | ✅ Just the bugfix, for upstream author or contributors | [Install](https://raw.githubusercontent.com/nrksu1tan/TS4-gallery-downloader/main/sims-4-gallery-downloader-fixed.user.js) |
 
-4. **Click “Download”:**
-   - Each item tile will have a “Download” button that saves all tray files.
+> 🟢 **Normal users should use the *Modded Version*** — it's easier, prettier, and beginner-friendly.  
+> 🧠 **Original author or devs** should use the *Fix Only* version if reviewing for integration.
+
+---
+
+## 📸 Button Preview
+
+Here is how the custom “Download” button looks in the modded version:
+
+
+> ![image](https://raw.githubusercontent.com/nrksu1tan/TS4-gallery-downloader/refs/heads/main/assets/demo.png)
+> 
+
+
+
 
 ---
 
@@ -47,6 +61,9 @@ Just fixed the problem like `RangeError: Invalid typed array length` that occurr
 
 - 👨‍💻 **Original author**: [anadius](https://github.com/anadius)  
   All core logic belongs to the original creator. This fork only includes a small bug fix.
+- ✍️ **Modified by**: [Nursultan](https://github.com/nrksu1tan)  
+  Added custom download button and improved fallback behavior.
+
 - 📚 Libraries used:  
   - [`protobufjs`](https://www.npmjs.com/package/protobufjs)  
   - [`jszip`](https://www.npmjs.com/package/jszip)  
