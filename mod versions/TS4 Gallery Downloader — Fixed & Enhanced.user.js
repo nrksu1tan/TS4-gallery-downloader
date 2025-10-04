@@ -350,7 +350,8 @@
             msgClass = msgClass.parent;
         }
         const name = nameParts.join(".");
-        throw `${name} class doesn't have ${key} nor ${key2} key.`;
+        console.warn(`${name} class doesn't have ${key} nor ${key2} key. Skipping it.`);
+        return null;
     }
 
     function parseValue(value, fieldType, isParentArray) {
