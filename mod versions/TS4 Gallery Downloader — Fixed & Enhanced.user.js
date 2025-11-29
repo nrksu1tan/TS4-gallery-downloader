@@ -8,7 +8,7 @@
 // @connect     athena.thesims.com
 // @connect     www.thesims.com
 // @connect     thesims-api.ea.com
-// @version     2.2.1
+// @version     2.3
 // @namespace   anadius.github.io
 // @grant       unsafeWindow
 // @grant       GM.xmlHttpRequest
