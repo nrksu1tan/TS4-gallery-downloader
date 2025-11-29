@@ -55,7 +55,7 @@ Same great features — just more stable and stylish!
 | Version | Description | Link |
 |--------|-------------|------|
 | ✨ **Modded Version (Recommended)** | Includes the bugfix **+** a better UI and a styled "Download" button | [Install](https://github.com/nrksu1tan/TS4-gallery-downloader/raw/refs/heads/main/mod%20versions/TS4%20Gallery%20Downloader%20—%20Fixed%20&%20Enhanced.user.js) |
-| ⚙️ **Fix Only (Upstream Patch)** | Only fixes the bug — no UI changes | [Install](https://raw.githubusercontent.com/nrksu1tan/TS4-gallery-downloader/main/sims-4-gallery-downloader-fixed.user.js) |
+| ⚙️ **Fix Only (Upstream Patch)** | Only fixes the bug — no UI changes | [Install](https://github.com/nrksu1tan/TS4-gallery-downloader/blob/74ff93fc9feed511ecc7f28bc8255952545fcb4f/sims-4-gallery-downloader-fixed.user.js) |
 
 > 🟢 **Regular players should pick the *Modded Version*** — it's easier, looks better, and works the same.  
 > 🧠 **Script authors or advanced users** might prefer the *Fix Only* version to integrate upstream.
