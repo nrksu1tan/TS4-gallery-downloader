@@ -1,5 +1,5 @@
 # TS4 Gallery Downloader (Modified)
-![Version](https://img.shields.io/badge/version-v2.3-blue?style=flat-square)
+![Version](https://img.shields.io/badge/version-v3.1-blue?style=flat-square)
 ![Userscript](https://img.shields.io/badge/works%20on-EA%20Gallery-5cba47?logo=ea&logoColor=white&style=flat-square)
 ![Status](https://img.shields.io/badge/status-actively%20maintained-brightgreen?style=flat-square)
 ![Built](https://img.shields.io/badge/built%20with-%E2%9D%A4%EF%B8%8F%20by%20nrksu1tan-orange?style=flat-square)
@@ -17,7 +17,7 @@ Same great features — just more stable and stylish!
 
 ---
 
-## 🛠️ What’s New in This Fork (v2.3)
+## 🛠️ What’s New in This Fork (v3.1)
 
 - 🚫 **No more errors when downloading** — if a lot is broken or removed from the Gallery, the script just skips it without crashing.
 - 📁 **More reliable downloads** — everything that can be downloaded is saved into a `.zip` file, just like before.
