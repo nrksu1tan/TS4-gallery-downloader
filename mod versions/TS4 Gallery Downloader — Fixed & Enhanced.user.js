@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name        TS4 Gallery Downloader — Fixed & Enhanced Edition
-// @description Enhanced version of TS4 Gallery Downloader with visual improvements, custom styles, and better reliability for custom download button — build by nrksu1tan.
+// @description Enhanced version with parallel image loading, toast notifications, download protection, semver updates, and i18n — build by nrksu1tan.
 // @author      anadius + modifications from nrksu1tan
 // @match       *://www.ea.com/*/games/the-sims/the-sims-4/pc/gallery*
 // @match       *://www.ea.com/games/the-sims/the-sims-4/pc/gallery*
@@ -9,7 +9,10 @@
 // @connect     www.thesims.com
 // @connect     thesims-api.ea.com
 // @connect     raw.githubusercontent.com
-// @version     3.1
+// @connect     github.com
+// @downloadURL https://raw.githubusercontent.com/nrksu1tan/TS4-gallery-downloader/main/mod%20versions/TS4%20Gallery%20Downloader%20%E2%80%94%20Fixed%20%26%20Enhanced.user.js
+// @updateURL   https://raw.githubusercontent.com/nrksu1tan/TS4-gallery-downloader/main/mod%20versions/TS4%20Gallery%20Downloader%20%E2%80%94%20Fixed%20%26%20Enhanced.user.js
+// @version     3.5
 // @namespace   anadius.github.io
 // @grant       unsafeWindow
 // @grant       GM.xmlHttpRequest
@@ -28,26 +31,39 @@
 // @require     https://cdn.jsdelivr.net/npm/protobufjs@6.8.8/dist/protobuf.min.js#sha256-VPK6lQo4BEjkmYz6rFWbuntzvMJmX45mSiLXgcLHCLE=
 // ==/UserScript==
 
-/* global protobuf, saveAs, JSZip, Long */
-/* eslint curly: 0 */
-/* eslint no-sequences: 0 */
-/* eslint no-return-assign: 0 */
+(function () {
+    'use strict';
 
-(function() {
-  'use strict';
-
-    const CURRENT_VERSION = "3.1";
+    const CURRENT_VERSION = "3.5";
     const GITHUB_REPO_URL = "https://github.com/nrksu1tan/TS4-gallery-downloader";
     const GITHUB_ISSUES_URL = "https://github.com/nrksu1tan/TS4-gallery-downloader/issues/new";
-    const GITHUB_RAW_URL = "https://github.com/nrksu1tan/TS4-gallery-downloader/raw/refs/heads/main/mod%20versions/TS4%20Gallery%20Downloader%20%E2%80%94%20Fixed%20&%20Enhanced.user.js";
+    const GITHUB_RAW_URL = "https://raw.githubusercontent.com/nrksu1tan/TS4-gallery-downloader/main/mod%20versions/TS4%20Gallery%20Downloader%20%E2%80%94%20Fixed%20%26%20Enhanced.user.js";
+
+    const isRU = navigator.language.toLowerCase().startsWith('ru');
+    const i18n = {
+        btnDownload: isRU ? 'Скачать' : 'Download',
+        btnDownloading: isRU ? 'Загрузка...' : 'Downloading...',
+        toastSuccess: isRU ? 'успешно скачан!' : 'downloaded successfully!',
+        toastFail: isRU ? 'Ошибка загрузки:' : 'Download failed:',
+        toastNoScope: isRU ? 'Не удалось определить элемент - обновите страницу' : 'Could not identify gallery item - try refreshing',
+        toastInitFail: isRU ? 'Скрипт не смог инициализироваться. Проверьте консоль (F12).' : 'Script failed to initialize. Check console (F12).',
+        modalTitle: isRU ? '📥 TS4 Downloader обновлен' : '📥 TS4 Downloader Updated',
+        modalBody: isRU ? 'Скрипт успешно установлен и готов к работе. Теперь вы можете скачивать постройки и симов напрямую из галереи The Sims 4 в один клик.' : 'The script is successfully installed and ready. You can now download builds and sims directly from the Sims 4 Gallery in one click.',
+        modalVersion: isRU ? 'Версия скрипта:' : 'Script version:',
+        modalDeveloper: isRU ? 'Разработчик:' : 'Developer:',
+        modalThanks: isRU ? 'Если этот инструмент сэкономил вам время, лучшей благодарностью за мою работу будет <b>звездочка (Star)</b> проекту на GitHub. Это бесплатно, но очень мотивирует меня выпускать обновления! ⭐' : 'If this tool saves you time, the best way to say thanks for my work is to leave a <b>Star</b> on GitHub. It is free for you, but greatly motivates me to keep updating! ⭐',
+        modalBtnStar: isRU ? '⭐ Поддержать автора' : '⭐ Support the author',
+        modalBtnClose: isRU ? 'Понятно, спасибо' : 'Got it, thanks',
+        updateText: isRU ? 'Доступна новая версия' : 'New version available',
+        updateBtn: isRU ? 'Обновить' : 'Update',
+        forceLogin: isRU ? 'Принудительный вход' : 'Force Login'
+    };
 
     GM_addStyle(`
     .row { background-image: linear-gradient(#299ed0, #00215dd1); }
     body { background-color: #00000061; }
-    html { background: url(https://anadius.su/images/pattern.png); }
-
     .stream-tile--container { margin-bottom: 25px !important; position: relative; overflow: hidden; transition: transform 0.2s ease; }
-    .stream-tile { background: #ffffff; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); padding: 10px; transition: transform 0.2s ease; position: relative; }
+    .stream-tile { background: #ffffff; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); padding: 10px; transition: transform 0.2s ease; position: relative; }
     .stream-tile--container:hover .stream-tile { transform: translateY(-4px); box-shadow: 0 8px 15px rgba(0,0,0,0.15); }
     .scaled-image__container { border-radius: 6px; overflow: hidden; max-height: 200px; margin-bottom: 10px; }
     .stream-tile__image { width: 100%; height: auto; display: block; }
@@ -64,480 +80,297 @@
     .search-browse { margin-bottom: 2.5rem; margin-top: 2.3rem; padding: 6.3rem 1.5rem .7rem; position: relative; background-image: linear-gradient(#ffffff 71%, #ffffff00); }
 
     .custom-download-btn {
-      background-color: #0074d9; /* Professional Blue */
-      color: #ffffff;
-      padding: 6px 14px;
-      border: 1px solid #0056a3;
-      border-radius: 6px;
-      cursor: pointer;
-      font-weight: 600;
-      font-size: 0.9rem;
-      transition: background-color 0.2s ease;
-      margin: 2px 0 2px 10px;
-      outline: none;
-      font-family: 'Open Sans', sans-serif;
+        position: relative; overflow: hidden; background-color: #2ecc71; color: #fff;
+        padding: 8px 16px; border: none; border-bottom: 3px solid #27ae60; border-radius: 8px;
+        cursor: pointer; font-weight: 700; font-size: 0.9rem; font-family: 'Open Sans', -apple-system, sans-serif;
+        transition: all 0.15s ease; margin: 2px 0 2px 10px; outline: none; white-space: nowrap;
+        min-width: 100px; text-align: center; user-select: none; box-shadow: 0 2px 4px rgba(46, 204, 113, 0.2);
     }
-    .custom-download-btn:hover { background-color: #0056a3; }
-    .custom-download-btn:active { transform: translateY(1px); }
+    .custom-download-btn:hover:not(:disabled) { background-color: #27ae60; box-shadow: 0 4px 8px rgba(39, 174, 96, 0.3); }
+    .custom-download-btn:active:not(:disabled) { border-bottom-width: 1px; box-shadow: none; }
+    .custom-download-btn:disabled { background-color: #a8e6cf; border-bottom-color: #88d4ab; cursor: not-allowed; opacity: 0.9; box-shadow: none; }
+    .custom-download-btn.is-loading::after {
+        content: ''; position: absolute; top: 0; left: -100%; width: 60%; height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+        animation: btn-shimmer 1.2s infinite;
+    }
+    @keyframes btn-shimmer { 0% { left: -60%; } 100% { left: 160%; } }
+    .custom-download-btn .btn-progress { position: absolute; bottom: 0; left: 0; height: 3px; width: 0%; background: rgba(255,255,255,0.8); transition: width 0.3s ease; border-radius: 0 0 8px 8px; }
+
+    #ts4-toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 1000000; display: flex; flex-direction: column; gap: 12px; pointer-events: none; }
+    .ts4-toast {
+        display: flex; align-items: center; gap: 14px; padding: 14px 20px; border-radius: 12px;
+        font-family: -apple-system, system-ui, sans-serif; font-size: 14px; font-weight: 500;
+        color: #fff; background: #222; box-shadow: 0 8px 24px rgba(0,0,0,0.15); pointer-events: auto; max-width: 380px; width: max-content;
+        animation: toast-in 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; transform-origin: bottom right;
+    }
+    .ts4-toast.is-hiding { animation: toast-out 0.3s ease forwards; }
+    @keyframes toast-in { from { opacity: 0; transform: scale(0.8) translateY(20px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+    @keyframes toast-out { from { opacity: 1; transform: scale(1) translateY(0); } to { opacity: 0; transform: scale(0.8) translateY(20px); } }
+    .ts4-toast--success { background: #2ecc71; }
+    .ts4-toast--error { background: #e74c3c; }
+    .ts4-toast--warn { background: #f39c12; }
+    .ts4-toast--info { background: #3498db; }
+    .ts4-toast-icon { font-size: 20px; line-height: 1; flex-shrink: 0; }
+    .ts4-toast-text { flex: 1; line-height: 1.4; }
+    .ts4-toast-close { opacity: 0.6; cursor: pointer; font-size: 18px; flex-shrink: 0; transition: opacity 0.2s; background: none; border: none; color: #fff; padding: 0; line-height: 1; margin-left: 4px; }
+    .ts4-toast-close:hover { opacity: 1; }
+    .ts4-toast a { color: #fff; text-decoration: underline; font-weight: 700; opacity: 0.9; }
+    .ts4-toast a:hover { opacity: 1; }
 
     #ts4-glass-modal {
-        position: fixed;
-        top: 0; left: 0; width: 100%; height: 100%;
-        background: rgba(0, 0, 0, 0.4);
-        backdrop-filter: blur(8px);
-        z-index: 999999;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px);
+        z-index: 999999; display: flex; justify-content: center; align-items: center; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        animation: modal-fade-in 0.3s ease forwards;
     }
+    @keyframes modal-fade-in { from { opacity: 0; } to { opacity: 1; } }
     .ts4-glass-content {
-        background: rgba(255, 255, 255, 0.75);
-        border: 1px solid rgba(255, 255, 255, 0.5);
-        padding: 40px;
-        border-radius: 16px;
-        width: 480px;
-        max-width: 90%;
-        box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
-        text-align: left;
-        color: #333;
+        background: #ffffff; padding: 32px; border-radius: 20px; width: 440px; max-width: 90%; box-shadow: 0 24px 48px rgba(0,0,0,0.2);
+        animation: modal-slide-in 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
     }
-    .ts4-glass-header {
-        font-size: 22px;
-        font-weight: 700;
-        margin-bottom: 10px;
-        color: #111;
-        border-bottom: 1px solid rgba(0,0,0,0.1);
-        padding-bottom: 15px;
-    }
-    .ts4-glass-body p {
-        font-size: 14px;
-        line-height: 1.6;
-        margin-bottom: 15px;
-        color: #444;
-    }
-    .ts4-meta {
-        font-size: 13px;
-        background: rgba(0,0,0,0.05);
-        padding: 12px;
-        border-radius: 8px;
-        margin-bottom: 25px;
-        color: #555;
-    }
-    .ts4-meta a {
-        color: #0074d9;
-        text-decoration: none;
-        font-weight: 600;
-        transition: color 0.2s;
-    }
-    .ts4-meta a:hover { color: #0056a3; text-decoration: underline; }
-    .ts4-btn-primary {
-        background-color: #111;
-        color: white;
-        border: none;
-        padding: 10px 24px;
-        font-size: 14px;
-        font-weight: 600;
-        border-radius: 6px;
-        cursor: pointer;
-        transition: opacity 0.2s;
-        float: right;
-    }
-    .ts4-btn-primary:hover { opacity: 0.8; }
+    @keyframes modal-slide-in { from { transform: translateY(30px) scale(0.95); opacity: 0; } to { transform: translateY(0) scale(1); opacity: 1; } }
+    .ts4-glass-header { font-size: 22px; font-weight: 800; margin-bottom: 12px; color: #111; display: flex; align-items: center; gap: 8px; }
+    .ts4-glass-body p { font-size: 15px; line-height: 1.5; margin-bottom: 16px; color: #333; }
+    .ts4-meta { font-size: 13px; background: #f8f9fa; border: 1px solid #e9ecef; padding: 12px 16px; border-radius: 12px; margin-bottom: 20px; color: #555; line-height: 1.6; }
+    .ts4-btn-row { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; }
+    .ts4-btn-primary { background: #2ecc71; color: #fff; border: none; border-bottom: 3px solid #27ae60; padding: 10px 24px; font-size: 14px; font-weight: 700; border-radius: 10px; cursor: pointer; transition: all 0.2s; }
+    .ts4-btn-primary:hover { background: #27ae60; transform: translateY(-1px); }
+    .ts4-btn-primary:active { transform: translateY(1px); border-bottom-width: 1px; }
+    .ts4-btn-link { color: #333; font-size: 14px; font-weight: 600; cursor: pointer; text-decoration: none; padding: 10px 16px; border-radius: 10px; transition: all 0.2s; border: 1px solid #ddd; display: flex; align-items: center; gap: 6px; }
+    .ts4-btn-link:hover { background: #f8f9fa; border-color: #ccc; }
 
-    /* Update Notification */
-    #ts4-update-toast {
-        position: fixed;
-        bottom: 20px; right: 20px;
-        background: rgba(0, 0, 0, 0.85);
-        color: #fff;
-        padding: 15px 20px;
-        border-radius: 8px;
-        font-family: sans-serif;
-        font-size: 13px;
-        z-index: 1000000;
-        box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-        display: flex;
-        align-items: center;
-        gap: 15px;
-        backdrop-filter: blur(4px);
+    /* Redesigned Force Login Button */
+    .ts4-login-btn {
+        position: fixed; top: 12px; left: 12px; z-index: 99999;
+        background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(4px);
+        color: #333; font-family: -apple-system, sans-serif; font-size: 12px; font-weight: 600;
+        text-decoration: none; padding: 6px 12px; border-radius: 8px; border: 1px solid rgba(0,0,0,0.1);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1); transition: all 0.2s ease;
     }
-    #ts4-update-toast a { color: #4dabf7; text-decoration: none; font-weight: bold; }
-    #ts4-update-toast a:hover { text-decoration: underline; }
+    .ts4-login-btn:hover { background: #fff; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); color: #0074d9; }
     `);
-
 
     const TRAY_ITEM_URL = 'https://thesims-api.ea.com/api/gallery/v1/sims/{UUID}';
     const DATA_ITEM_URL = 'http://sims4cdn.ea.com/content-prod.ts4/prod/{FOLDER}/{GUID}.dat';
     const IMAGE_URL = 'https://athena.thesims.com/v2/images/{TYPE}/{FOLDER}/{GUID}/{INDEX}.jpg';
-
     const EXCHANGE_HOUSEHOLD = 1;
     const EXCHANGE_BLUEPRINT = 2;
     const EXCHANGE_ROOM = 3;
     const EXTENSIONS = {
         [EXCHANGE_HOUSEHOLD]: ['Household', 'householdbinary', 'hhi', 'sgi'],
         [EXCHANGE_BLUEPRINT]: ['Lot', 'blueprint', 'bpi', 'bpi'],
-        [EXCHANGE_ROOM]: ['Room', 'room', 'rmi', null]
+        [EXCHANGE_ROOM]:      ['Room', 'room', 'rmi', null]
     };
+    const BIG_WIDTH = 591, BIG_HEIGHT = 394, SMALL_WIDTH = 300, SMALL_HEIGHT = 200;
+    const LONG_TYPES = ["sint64", "uint64", "int64", "sfixed64", "fixed64"];
 
-    const BIG_WIDTH = 591;
-    const BIG_HEIGHT = 394;
-    const SMALL_WIDTH = 300;
-    const SMALL_HEIGHT = 200;
+    const TOAST_ICONS = { success: '✓', error: '✕', warn: '⚠', info: 'ℹ' };
 
-    const LONG_TYPES = ["sint64","uint64","int64","sfixed64","fixed64"];
+    function getToastContainer() {
+        let c = document.getElementById('ts4-toast-container');
+        if (!c) { c = document.createElement('div'); c.id = 'ts4-toast-container'; document.body.appendChild(c); }
+        return c;
+    }
 
+    function showToast(message, type = 'info', duration = 5000) {
+        const container = getToastContainer();
+        const toast = document.createElement('div');
+        toast.className = `ts4-toast ts4-toast--${type}`;
+        toast.innerHTML = `
+            <span class="ts4-toast-icon">${TOAST_ICONS[type] || 'ℹ'}</span>
+            <span class="ts4-toast-text">${message}</span>
+            <button class="ts4-toast-close" title="Close">✕</button>
+        `;
 
-    // --- LOGGING SYSTEM ---
+        const dismiss = () => {
+            toast.classList.add('is-hiding');
+            setTimeout(() => toast.remove(), 300);
+        };
+
+        toast.querySelector('.ts4-toast-close').addEventListener('click', dismiss);
+        container.appendChild(toast);
+        if (duration > 0) setTimeout(dismiss, duration);
+        return toast;
+    }
+
     function logSuccess(title, author, type, uuid) {
         const itemUrl = `https://www.ea.com/games/the-sims/the-sims-4/pc/gallery/${uuid}`;
-        console.group(`%c TS4 Downloader: Downloaded ${title}`, 'color: #2ecc71; font-weight: bold; font-size: 13px;');
-        console.log(`%c Name:`, 'color:#999', title);
-        console.log(`%c Author:`, 'color:#999', author);
-        console.log(`%c Type:`, 'color:#999', type);
-        console.log(`%c UUID:`, 'color:#999', uuid);
-        console.log(`%c Time:`, 'color:#999', new Date().toLocaleTimeString());
-        console.log(`%c 🔗 Check Item:`, 'font-weight:bold; color: #3498db', itemUrl);
+        console.group(`%c TS4 Downloader: Downloaded ${title}`, 'color:#2ecc71;font-weight:bold;font-size:13px;');
+        console.log('%c Name:',   'color:#999', title);
+        console.log('%c Author:', 'color:#999', author);
+        console.log('%c Type:',   'color:#999', type);
+        console.log('%c UUID:',   'color:#999', uuid);
+        console.log('%c Time:',   'color:#999', new Date().toLocaleTimeString());
+        console.log('%c 🔗 Check Item:', 'font-weight:bold;color:#3498db', itemUrl);
         console.groupEnd();
     }
 
     function logFailure(context, error, uuid) {
-        console.group(`%c TS4 Downloader: Error in ${context}`, 'color: #e74c3c; font-weight: bold; font-size: 13px;');
-        console.log(`%c Reason:`, 'font-weight:bold', error.message || error);
-        console.log(`%c UUID:`, 'font-weight:bold', uuid);
-        console.log(`%c Details:`, 'color:#999', error);
-        console.log(`%c 🆘 Report Issue:`, 'font-weight:bold; color: #3498db;', GITHUB_ISSUES_URL);
+        console.group(`%c TS4 Downloader: Error in ${context}`, 'color:#e74c3c;font-weight:bold;font-size:13px;');
+        console.log('%c Reason:',       'font-weight:bold', error.message || error);
+        console.log('%c UUID:',         'font-weight:bold', uuid);
+        console.log('%c Details:',      'color:#999', error);
+        console.log('%c 🆘 Report:',    'font-weight:bold;color:#3498db;', GITHUB_ISSUES_URL);
         console.groupEnd();
     }
 
-    // --- UI & UPDATES ---
-    function showWelcomeModal() {
-        const lastSeenVersion = localStorage.getItem('ts4_gallery_seen_version');
-        if (lastSeenVersion === CURRENT_VERSION) return;
+    const xhr = details => new Promise((resolve, reject) =>
+        GM.xmlHttpRequest(Object.assign({ method: 'GET' }, details, {
+            onload:  res => res.status === 404
+                ? reject(new Error(`404 Not Found: ${details.url}`))
+                : resolve(res.response),
+            onerror: ()  => reject(new Error(`Network Error: ${details.url}`))
+        }))
+    );
 
-        const modal = document.createElement('div');
-        modal.id = 'ts4-glass-modal';
-        modal.innerHTML = `
-            <div class="ts4-glass-content">
-                <div class="ts4-glass-header">TS4 Gallery Downloader</div>
-                <div class="ts4-glass-body">
-                    <p>Script initialized successfully. You can now download Households, Lots, Rooms, and Tattoos directly from the EA Gallery.</p>
-                    <div class="ts4-meta">
-                        Version: <b>${CURRENT_VERSION}</b><br>
-                        Developer: <a href="${GITHUB_REPO_URL}" target="_blank">nrksu1tan</a>
-                    </div>
-                    <p>To use: Click the new "Download" button on any gallery item.</p>
-                    <button class="ts4-btn-primary" id="ts4-close-btn">Close</button>
-                    <div style="clear:both;"></div>
-                </div>
-            </div>
-        `;
-        document.body.appendChild(modal);
-
-        document.getElementById('ts4-close-btn').addEventListener('click', () => {
-            modal.style.opacity = '0';
-            localStorage.setItem('ts4_gallery_seen_version', CURRENT_VERSION);
-            setTimeout(() => modal.remove(), 300);
-        });
-    }
-
-    function checkForUpdates() {
-        const lastCheck = localStorage.getItem('ts4_update_check_time');
-        const now = Date.now();
-        // Check once every 24 hours (86400000 ms)
-        if (lastCheck && (now - parseInt(lastCheck)) < 86400000) return;
-
-        console.log('Checking for updates...');
-        GM.xmlHttpRequest({
-            method: 'GET',
-            url: GITHUB_RAW_URL + '?t=' + now, // cache buster
-            onload: function(response) {
-                localStorage.setItem('ts4_update_check_time', now.toString());
-                if (response.status === 200) {
-                    const match = response.responseText.match(/@version\s+([\d.]+)/);
-                    if (match && match[1]) {
-                        const remoteVersion = match[1];
-                        if (remoteVersion > CURRENT_VERSION) {
-                            showUpdateNotification(remoteVersion);
-                        }
-                    }
-                }
-            }
-        });
-    }
-
-    function showUpdateNotification(newVersion) {
-        const toast = document.createElement('div');
-        toast.id = 'ts4-update-toast';
-        toast.innerHTML = `
-            <span>New version available: <b>${newVersion}</b></span>
-            <a href="${GITHUB_REPO_URL}" target="_blank">Update</a>
-            <span style="cursor:pointer; margin-left:10px; opacity:0.6;" onclick="this.parentElement.remove()">✕</span>
-        `;
-        document.body.appendChild(toast);
-    }
-
-
-    // --- CORE LOGIC (PROTOBUF & DOWNLOAD) ---
-
-    function getRandomIntInclusive(min, max) {
-        min = Math.ceil(min);
-        max = Math.floor(max);
-        return Math.floor(Math.random() * (max - min + 1)) + min;
-    }
-
-    const xhr = details => new Promise((resolve, reject) => {
-        const stack = new Error().stack;
-        const reject_xhr = res => {
-            reject({
-                name: 'GMXHRError',
-                message: `XHR for URL ${details.url} returned status code ${res.status}`,
-                stack: stack,
-                status: res.status
-            });
-        };
-        GM.xmlHttpRequest(Object.assign(
-            { method: 'GET' },
-            details,
-            {
-                onload: res => {
-                    if(res.status === 404) {
-                        reject_xhr(res);
-                    } else {
-                        resolve(res.response);
-                    }
-                },
-                onerror: res => reject_xhr(res)
-            }
-        ));
-    });
-
-    function dashify(uuid) {
-        var slice = String.prototype.slice,
-            indices = [[0, 8],[8, 12],[12, 16],[16, 20],[20]];
-        return indices.map(function(index) {
-            return slice.apply(uuid, index);
-        }).join("-");
+    function isNewerVersion(remote, current) {
+        const parse = v => v.split('.').map(Number);
+        const r = parse(remote), c = parse(current);
+        for (let i = 0; i < Math.max(r.length, c.length); i++) {
+            const rv = r[i] ?? 0, cv = c[i] ?? 0;
+            if (rv > cv) return true;
+            if (rv < cv) return false;
+        }
+        return false;
     }
 
     function uuid2Guid(uuid) {
-        if (uuid.indexOf("-") !== -1) return uuid.toUpperCase();
-        var decoded;
+        if (uuid.includes('-')) return uuid.toUpperCase();
         try {
-            decoded = atob(uuid);
-        } catch (err) {
-            return false;
+            const binary = atob(uuid.replace(/-/g, '+').replace(/_/g, '/'));
+            const hex = Array.from(binary, c => c.charCodeAt(0).toString(16).padStart(2, '0')).join('');
+            return [hex.slice(0,8), hex.slice(8,12), hex.slice(12,16), hex.slice(16,20), hex.slice(20)].join('-').toUpperCase();
+        } catch {
+            throw new Error(`Invalid UUID format: ${uuid}`);
         }
-        var guid = "";
-        for (var i = 0; i < decoded.length; i++) {
-            var ch = decoded.charCodeAt(i);
-            var hi = (ch & 240) >> 4;
-            hi = hi.toString(16);
-            var lo = (ch & 15);
-            lo = lo.toString(16);
-            guid += (hi + lo);
-        }
-        return dashify(guid).toUpperCase();
     }
 
     function getFilePath(guid) {
-        var bfnvInit = 2166136261;
-        var fnvInit = bfnvInit;
-        for (var i = 0; i < guid.length; ++i) {
-            fnvInit += (fnvInit << 1) + (fnvInit << 4) + (fnvInit << 7) + (fnvInit << 8) + (fnvInit << 24);
-            fnvInit ^= guid.charCodeAt(i);
+        let h = 2166136261;
+        for (let i = 0; i < guid.length; i++) {
+            h += (h << 1) + (h << 4) + (h << 7) + (h << 8) + (h << 24);
+            h ^= guid.charCodeAt(i);
         }
-        var result = (fnvInit >>> 0) % 1e4;
-        result = result.toString(16);
-        return "0x" + "00000000".substr(0, 8 - result.length) + result;
-    }
-
-
-    let root;
-    async function loadProtobuf() {
-        let data = await fetch(await GM.getResourceUrl('bundle.json'));
-        let jsonDescriptor = await data.json();
-        root = protobuf.Root.fromJSON(jsonDescriptor);
+        return '0x' + ('00000000' + ((h >>> 0) % 1e4).toString(16)).slice(-8);
     }
 
     function getRandomId() {
         return new Long(
-            getRandomIntInclusive(1, 0xffffffff),
-            getRandomIntInclusive(0, 0xffffffff),
+            Math.floor(Math.random() * 0xffffffff) + 1,
+            Math.floor(Math.random() * 0xffffffff),
             true
         );
     }
 
-    function createPrefix(num) {
-        const arr = new ArrayBuffer(8);
-        const view = new DataView(arr);
-        view.setUint32(4, num, true);
-        return new Uint8Array(arr);
+    const protobufRoot = (async () => {
+        const url  = await GM.getResourceUrl('bundle.json');
+        const data = await fetch(url);
+        return protobuf.Root.fromJSON(await data.json());
+    })();
+
+    function coerceScalar(val, fieldType) {
+        if (!LONG_TYPES.includes(fieldType)) return val;
+        if (val === undefined || val === null) return Long.fromValue(0);
+        if (Long.isLong(val)) return val;
+        try {
+            return typeof val === 'string'
+                ? Long.fromString(val, fieldType === 'uint64' || fieldType === 'fixed64')
+                : Long.fromValue(val);
+        } catch { return Long.fromValue(0); }
     }
 
-    function camelToSnakeCase(str) {
-        return str.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
-    }
+    async function parseMessageObj(obj, className) {
+        const root = await protobufRoot;
+        const msgClass = root.lookupType(className);
+        const parsed = {};
 
-    function findKeyName(key, messageClass) {
-        if(typeof messageClass.fields[key] !== "undefined") {
-            return key;
-        }
-        const key2 = camelToSnakeCase(key);
-        if(typeof messageClass.fields[key2] !== "undefined") {
-            return key2;
-        }
-        if (key === 'dynamicAreas' || key2 === 'dynamic_areas') {
-            return null;
-        }
-        const nameParts = [];
-        let msgClass = messageClass;
-        while(msgClass.name !== "" && typeof msgClass.name !== "undefined") {
-            nameParts.unshift(msgClass.name);
-            msgClass = msgClass.parent;
-        }
-        return null;
-    }
+        for (const key of Object.keys(obj)) {
+            const snakeKey = key.replace(/[A-Z]/g, c => `_${c.toLowerCase()}`);
+            const fieldKey = msgClass.fields[key] ? key : msgClass.fields[snakeKey] ? snakeKey : null;
+            if (!fieldKey) continue;
 
-    function parseValue(value, fieldType, isParentArray) {
-        let parsedValue = value;
-        const valueType = typeof value;
+            const field = msgClass.fields[fieldKey];
+            const val   = obj[key];
 
-        if (valueType === "object" && value !== null) {
-            if (Array.isArray(value)) {
-                if (isParentArray) throw "No clue how to handle array of arrays";
-                parsedValue = parseMessageArray(value, fieldType);
+            if (Array.isArray(val)) {
+                parsed[fieldKey] = await Promise.all(val.map(v =>
+                    typeof v === 'object' && v !== null
+                        ? parseMessageObj(v, field.type).then(r => r[0])
+                        : Promise.resolve(coerceScalar(v, field.type))
+                ));
+            } else if (typeof val === 'object' && val !== null) {
+                [parsed[fieldKey]] = await parseMessageObj(val, field.type);
             } else {
-                [parsedValue] = parseMessageObj(value, fieldType);
+                parsed[fieldKey] = coerceScalar(val, field.type);
             }
         }
-        else if (valueType === "string") {
-            if (fieldType === "string" || fieldType === "bytes") {
-            } else if (LONG_TYPES.includes(fieldType)) {
-                parsedValue = Long.fromValue(value);
-            } else {
-                try {
-                    parsedValue = root.lookupEnum(fieldType).values[value.split('.').pop()];
-                } catch (e) {
-                    parsedValue = 0;
+
+        if (className.includes("WebTraitTracker")) {
+            for (const f of ['icon_key', 'cas_selected_icon_key', 'icon', 'icon_high_res']) {
+                if (!msgClass.fields[f]) continue;
+                if (!parsed[f] || typeof parsed[f] !== 'object') {
+                    parsed[f] = { type: 0, group: 0, instance: Long.fromValue(0) };
+                } else {
+                    if (!Long.isLong(parsed[f].instance)) parsed[f].instance = Long.fromValue(0);
+                    parsed[f].type  = parsed[f].type  ?? 0;
+                    parsed[f].group = parsed[f].group ?? 0;
                 }
             }
         }
-        else if (LONG_TYPES.includes(fieldType)) {
-            if (value === undefined || value === null) {
-                parsedValue = Long.fromValue(0);
-            } else {
-                parsedValue = Long.fromValue(value);
-            }
-        }
-        return parsedValue;
-    }
 
-    function parseMessageArray(messageArray, className) {
-        const parsedArray = [];
-        messageArray.forEach(arrayItem => {
-            parsedArray.push(parseValue(arrayItem, className, true));
-        });
-        return parsedArray;
-    }
-
-    function parseMessageObj(messageObj, className) {
-        const messageClass = root.lookupType(className);
-        const keys = Object.keys(messageObj);
-        const parsedMessage = {};
-
-        // 1. Parse standard keys
-        for (let i = 0; i < keys.length; i++) {
-            const key = findKeyName(keys[i], messageClass);
-            if (key !== null) {
-                parsedMessage[key] = parseValue(messageObj[keys[i]], messageClass.fields[key].type);
-            }
-        }
-
-        // 2. AGGRESSIVE FIX FOR MISSING DATA
-        if (className.includes("WebTraitTracker")) {
-            const resourceKeyFields = ['icon_key', 'cas_selected_icon_key', 'icon', 'icon_high_res'];
-            resourceKeyFields.forEach(field => {
-                if (messageClass.fields[field]) {
-                    if (!parsedMessage[field] || typeof parsedMessage[field] !== 'object') {
-                        parsedMessage[field] = { type: 0, group: 0, instance: Long.fromValue(0) };
-                    } else {
-                        if (!parsedMessage[field].instance) parsedMessage[field].instance = Long.fromValue(0);
-                        if (parsedMessage[field].type === undefined) parsedMessage[field].type = 0;
-                        if (parsedMessage[field].group === undefined) parsedMessage[field].group = 0;
+        for (const [fieldName, field] of Object.entries(msgClass.fields)) {
+            if (parsed[fieldName] !== undefined && parsed[fieldName] !== null) {
+                if (field.type?.includes('ResourceKey')) {
+                    const rk = parsed[fieldName];
+                    if (rk && !Long.isLong(rk.instance)) {
+                        rk.instance = coerceScalar(rk.instance, 'uint64');
                     }
                 }
-            });
-        }
-
-        for (const fieldName in messageClass.fields) {
-            const field = messageClass.fields[fieldName];
-            if (parsedMessage[fieldName] === undefined || parsedMessage[fieldName] === null) {
-                if (field.repeated) {
-                    parsedMessage[fieldName] = [];
-                } else if (LONG_TYPES.includes(field.type)) {
-                    parsedMessage[fieldName] = Long.fromValue(0);
-                } else if (["uint32", "int32", "float", "double"].includes(field.type)) {
-                    parsedMessage[fieldName] = 0;
-                } else if (field.type === "bool") {
-                    parsedMessage[fieldName] = false;
-                } else if (field.resolvedType && field.resolvedType.fields) {
-                    const [emptyChild] = parseMessageObj({}, field.type);
-                    parsedMessage[fieldName] = emptyChild;
-                }
-            } else {
-                if (field.type.includes("ResourceKey")) {
-                     let rKey = parsedMessage[fieldName];
-                     if (rKey && (rKey.instance === undefined || rKey.instance === null)) {
-                         rKey.instance = Long.fromValue(0);
-                     }
-                }
+                continue;
+            }
+            if (field.repeated) {
+                parsed[fieldName] = [];
+            } else if (LONG_TYPES.includes(field.type)) {
+                parsed[fieldName] = Long.fromValue(0);
+            } else if (['uint32','int32','float','double'].includes(field.type)) {
+                parsed[fieldName] = 0;
+            } else if (field.type === 'bool') {
+                parsed[fieldName] = false;
+            } else if (field.resolvedType?.fields) {
+                [parsed[fieldName]] = await parseMessageObj({}, field.type);
             }
         }
 
-        return [parsedMessage, messageClass];
+        return [parsed, msgClass];
     }
 
-    async function getTrayItem(uuid, guid, folder) {
-        let message;
-        try {
-            message = await xhr({
-                url: TRAY_ITEM_URL.replace('{UUID}', encodeURIComponent(uuid)),
-                responseType: 'json',
-                headers: { 'Accept-Language': 'en-US,en;q=0.9', 'Cookie': '' }
-            });
-        } catch(e) {
-            if(e.name === 'GMXHRError') message = null;
-            else throw e;
-        }
-        if(!message || typeof message.error !== 'undefined') {
+    async function getTrayItem(uuid) {
+        const message = await xhr({
+            url: TRAY_ITEM_URL.replace('{UUID}', encodeURIComponent(uuid)),
+            responseType: 'json',
+            headers: { 'Accept-Language': 'en-US,en;q=0.9' }
+        });
+
+        if (!message || message.error !== undefined)
             throw new Error("API Error: Item might be hidden or removed.");
-        }
 
-        const [parsedMessage, messageClass] = parseMessageObj(message, "EA.Sims4.Network.TrayMetadata");
-
-        if (parsedMessage.type === undefined || parsedMessage.type === null) {
-            parsedMessage.type = EXCHANGE_HOUSEHOLD;
-        }
-
+        const [parsedMessage, messageClass] = await parseMessageObj(message, "EA.Sims4.Network.TrayMetadata");
+        parsedMessage.type ??= EXCHANGE_HOUSEHOLD;
         parsedMessage.id = getRandomId();
 
         let additional = 0;
-        if(parsedMessage.type === EXCHANGE_BLUEPRINT) {
+        if (parsedMessage.type === EXCHANGE_BLUEPRINT) {
             additional = parsedMessage.metadata.bp_metadata.num_thumbnails - 1;
-        } else if(parsedMessage.type === EXCHANGE_HOUSEHOLD) {
-            if (parsedMessage.metadata && parsedMessage.metadata.hh_metadata && parsedMessage.metadata.hh_metadata.sim_data) {
-                additional = parsedMessage.metadata.hh_metadata.sim_data.length;
-                parsedMessage.metadata.hh_metadata.sim_data.forEach((sim, i) => {
-                    sim.id = parsedMessage.id.add(i + 1);
-                });
-            } else {
-                 additional = 1;
-            }
+        } else if (parsedMessage.type === EXCHANGE_HOUSEHOLD) {
+            const sims = parsedMessage.metadata?.hh_metadata?.sim_data || [];
+            additional = sims.length > 0 ? sims.length : 1;
+            sims.forEach((sim, i) => { sim.id = parsedMessage.id.add(i + 1); });
         }
 
         const encodedMessage = messageClass.encode(parsedMessage).finish();
-        const prefix = createPrefix(encodedMessage.byteLength);
+        const prefix = new Uint8Array(8);
+        new DataView(prefix.buffer).setUint32(4, encodedMessage.byteLength, true);
+
         const resultFile = new Uint8Array(prefix.length + encodedMessage.length);
         resultFile.set(prefix);
         resultFile.set(encodedMessage, prefix.length);
@@ -547,307 +380,311 @@
             parsedMessage.type,
             parsedMessage.id,
             additional,
-            parsedMessage.modifier_name || parsedMessage.creator_name,
-            parsedMessage.name
+            parsedMessage.modifier_name || parsedMessage.creator_name || 'unknown',
+            parsedMessage.name || 'unknown'
         ];
     }
 
-
     async function getDataItem(guid, folder, type, id) {
-        let response;
-        try {
-            response = await xhr({
-                url: DATA_ITEM_URL.replace('{FOLDER}', folder).replace('{GUID}', guid),
-                responseType: 'arraybuffer'
-            });
-        } catch(e) {
-            if(e.name === 'GMXHRError' && e.status === 404) {
-                throw new Error("Data file (.dat) missing from server.");
-            } else {
-                throw e;
-            }
-        }
+        const response = await xhr({
+            url: DATA_ITEM_URL.replace('{FOLDER}', folder).replace('{GUID}', guid),
+            responseType: 'arraybuffer'
+        });
 
-        if(type !== EXCHANGE_HOUSEHOLD) {
-            return response;
-        }
+        if (type !== EXCHANGE_HOUSEHOLD) return response;
 
+        const root = await protobufRoot;
         const messageClass = root.lookupTypeOrEnum('EA.Sims4.Network.FamilyData');
-        const totalBytes = response.byteLength;
-        if(totalBytes < 8) {
-            console.warn("Invalid .dat file size. Using original.");
-            return response;
-        }
-        const view = new DataView(response);
-        let len = view.getUint32(4, true);
-        if(totalBytes < 8 + len) {
-            console.warn(`Truncated .dat file. Using original.`);
-            return response;
-        }
+        if (response.byteLength < 8) return response;
 
-        const prefix = new Uint8Array(response, 0, 4);
+        const view = new DataView(response);
+        const len  = view.getUint32(4, true);
+        if (response.byteLength < 8 + len) return response;
 
         let message;
         try {
             message = messageClass.decode(new Uint8Array(response, 8, len));
-        } catch (err) {
-            console.warn("Protobuf decode failed (likely Tattoo/Accessory). Using original file.");
+        } catch {
             return response;
         }
 
+        const prefix = new Uint8Array(response, 0, 4);
         const suffix = new Uint8Array(response, 8 + len);
+        const sims   = message.family_account.sim;
+        const idMap  = {};
 
-        const newIdsDict = {};
-        const sims = message.family_account.sim;
-        sims.forEach((sim, i) => {
-            newIdsDict[sim.sim_id.toString()] = id.add(i+1);
-        });
+        sims.forEach((sim, i) => { idMap[sim.sim_id.toString()] = id.add(i + 1); });
         sims.forEach(sim => {
-            sim.sim_id = newIdsDict[sim.sim_id.toString()];
-            sim.significant_other = newIdsDict[sim.significant_other?.toString()];
+            sim.sim_id          = idMap[sim.sim_id.toString()];
+            sim.significant_other = idMap[sim.significant_other?.toString()];
             sim.attributes?.genealogy_tracker?.family_relations?.forEach(r => {
-                const newId = newIdsDict[r.sim_id.toString()];
-                if(newId) r.sim_id = newId;
+                const newId = idMap[r.sim_id.toString()];
+                if (newId) r.sim_id = newId;
             });
         });
 
         let editedMessage;
-        try {
-            editedMessage = new Uint8Array(messageClass.encode(message).finish());
-        } catch(err) {
-            console.error("Error re-encoding .dat:", err);
-            return response;
-        }
+        try { editedMessage = new Uint8Array(messageClass.encode(message).finish()); }
+        catch { return response; }
 
-        const resultArray = new Uint8Array(8 + editedMessage.length + suffix.length);
-        resultArray.set(prefix);
-        new DataView(resultArray.buffer).setUint32(4, editedMessage.length, true);
-        resultArray.set(editedMessage, 8);
-        resultArray.set(suffix, 8 + editedMessage.length);
-        return resultArray.buffer;
+        const result = new Uint8Array(8 + editedMessage.length + suffix.length);
+        result.set(prefix);
+        new DataView(result.buffer).setUint32(4, editedMessage.length, true);
+        result.set(editedMessage, 8);
+        result.set(suffix, 8 + editedMessage.length);
+        return result.buffer;
     }
-
 
     function newCanvas(w, h) {
         const c = document.createElement('canvas');
-        c.width = w;
-        c.height = h;
+        c.width = w; c.height = h;
         return c;
     }
 
     function loadImage(url) {
-        return new Promise(resolve => {
-            xhr({ url, responseType: 'blob' }).then(blob => {
-                const urlCreator = window.URL || window.webkitURL;
-                const imageUrl = urlCreator.createObjectURL(blob);
-                const img = new Image();
-                img.onload = () => {
-                    urlCreator.revokeObjectURL(img.src);
-                    resolve(img);
-                };
-                img.onerror = () => resolve(null);
-                img.src = imageUrl;
-            }).catch(() => resolve(null));
-        });
+        return new Promise(resolve =>
+            xhr({ url, responseType: 'blob' })
+                .then(blob => {
+                    const objectUrl = URL.createObjectURL(blob);
+                    const img = new Image();
+                    img.onload  = () => { URL.revokeObjectURL(objectUrl); resolve(img); };
+                    img.onerror = () => resolve(null);
+                    img.src = objectUrl;
+                })
+                .catch(() => resolve(null))
+        );
     }
 
     async function getImages(guid, folder, type, additional) {
-        const URL_TEMPLATE = IMAGE_URL
-        .replace('{FOLDER}', folder)
-        .replace('{GUID}', guid)
-        .replace('{TYPE}', type - 1);
+        const URL_TPL = IMAGE_URL
+            .replace('{FOLDER}', folder)
+            .replace('{GUID}', guid)
+            .replace('{TYPE}', type - 1);
 
-        const big = newCanvas(BIG_WIDTH, BIG_HEIGHT);
+        const urls = Array.from({ length: additional + 1 }, (_, i) =>
+            URL_TPL.replace('{INDEX}', String(i).padStart(2, '0'))
+        );
+        const loadedImages = await Promise.all(urls.map(loadImage));
+
+        const big   = newCanvas(BIG_WIDTH, BIG_HEIGHT);
         const small = newCanvas(SMALL_WIDTH, SMALL_HEIGHT);
         const images = [];
 
-        for(let i=0; i<=additional; i++) {
-            const url = URL_TEMPLATE.replace('{INDEX}', i.toString().padStart(2, '0'));
-            const img = await loadImage(url);
-            if(!img) {
-                console.warn("Image missing:", url);
-                continue;
-            }
+        loadedImages.forEach((img, i) => {
+            if (!img) return;
 
-            let width, height, x, y;
-            if(type === EXCHANGE_BLUEPRINT || (type === EXCHANGE_HOUSEHOLD && i > 0)) {
-                width = Math.round(img.naturalHeight * BIG_WIDTH / BIG_HEIGHT);
+            let width, height;
+            if (type === EXCHANGE_BLUEPRINT || (type === EXCHANGE_HOUSEHOLD && i > 0)) {
+                width  = Math.round(img.naturalHeight * BIG_WIDTH / BIG_HEIGHT);
                 height = img.naturalHeight;
             } else {
-                width = BIG_WIDTH;
-                height = BIG_HEIGHT;
+                width = BIG_WIDTH; height = BIG_HEIGHT;
             }
-            x = (img.naturalWidth - width) / 2;
-            y = (img.naturalHeight - height) / 2;
+            const x = (img.naturalWidth  - width)  / 2;
+            const y = (img.naturalHeight - height) / 2;
 
-            if(i === 0) {
+            if (i === 0) {
                 small.getContext('2d').drawImage(img, x, y, width, height, 0, 0, SMALL_WIDTH, SMALL_HEIGHT);
                 images.push(small.toDataURL('image/jpeg').split('base64,')[1]);
             }
             big.getContext('2d').drawImage(img, x, y, width, height, 0, 0, BIG_WIDTH, BIG_HEIGHT);
             images.push(big.toDataURL('image/jpeg').split('base64,')[1]);
-        }
+        });
 
         return images;
     }
 
-
     function generateName(type, id, ext) {
-        const typeStr = '0x' + type.toString(16).toLowerCase().padStart(8, '0');
-        const idStr   = '0x' + id.toString(16).toLowerCase().padStart(16, '0');
-        return `${typeStr}!${idStr}.${ext}`;
+        return `0x${type.toString(16).padStart(8,'0')}!0x${id.toString(16).padStart(16,'0')}.${ext}`;
     }
 
-
-    function toggleDownload(scope, bool) {
-        scope.vm.toggleDownload.toggling = bool;
-        scope.$apply();
-    }
-
-    async function downloadItem(scope) {
+    async function downloadItem(scope, btn) {
         const uuid = scope.vm.uuid;
+
+        btn.disabled = true;
+        btn.classList.add('is-loading');
+        const progressBar = btn.querySelector('.btn-progress');
+        btn.querySelector('.btn-label').textContent = i18n.btnDownloading;
+        if (progressBar) progressBar.style.width = '15%';
+
+        scope.vm.toggleDownload.toggling = true;
+        scope.$apply();
+
         try {
-            const guid = uuid2Guid(uuid);
+            const guid   = uuid2Guid(uuid);
             const folder = getFilePath(guid);
+            const zip    = new JSZip();
 
-            toggleDownload(scope, true);
-            const zip = new JSZip();
-
-            const [trayItem, type, id, additional, author, title] = await getTrayItem(uuid, guid, folder);
+            if (progressBar) progressBar.style.width = '30%';
+            const [trayItem, type, id, additional, author, title] = await getTrayItem(uuid);
             zip.file(generateName(type, id, 'trayitem'), trayItem);
 
-            const [typeStr, dataExt, imageExt, additionalExt] = EXTENSIONS[type];
+            if (progressBar) progressBar.style.width = '50%';
+            const [typeStr, dataExt, imageExt, additionalExt] = EXTENSIONS[type] || ['Unknown', 'blueprint', 'jpg', 'jpg'];
             const dataItem = await getDataItem(guid, folder, type, id);
             zip.file(generateName(0, id, dataExt), dataItem);
 
+            if (progressBar) progressBar.style.width = '70%';
             const images = await getImages(guid, folder, type, additional);
             images.forEach((data, i) => {
-                let group = (i === 0) ? 2 : 3;
-                let extension = (i < 2) ? imageExt : additionalExt;
+                let group = i === 0 ? 2 : 3;
+                let extension = i < 2 ? imageExt : additionalExt;
                 let newId = id;
-                if(i >= 2) {
-                    let j = i - 1;
+                if (i >= 2) {
+                    const j = i - 1;
                     group += (1 << (4 * type)) * j;
-                    if(type === EXCHANGE_HOUSEHOLD) {
-                        newId = newId.add(j);
-                    }
+                    if (type === EXCHANGE_HOUSEHOLD) newId = newId.add(j);
                 }
                 zip.file(generateName(group, newId, extension), data, { base64: true });
             });
 
-            let filename = [
-                author,
-                '0x' + type.toString(16).toLowerCase().padStart(8, '0'),
-                title,
-                uuid.replace(/\+/g, '-').replace(/\//g, '_')
-            ].join('__');
+            if (progressBar) progressBar.style.width = '90%';
+            const filename = [author, '0x' + type.toString(16).padStart(8,'0'), title,
+                uuid.replace(/\+/g, '-').replace(/\//g, '_')]
+                .join('__').replace(/\s+/g, '_').replace(/[^a-z0-9.\-=_]/gi, '');
 
-            filename = filename.replace(/\s+/g, '_').replace(/[^a-z0-9.\-=_]/gi, '');
-
-            const content = await zip.generateAsync({ type: 'blob' });
+            const content = await zip.generateAsync({ type: 'blob', compression: 'STORE' });
             saveAs(content, filename + '.zip');
 
+            if (progressBar) progressBar.style.width = '100%';
             logSuccess(title, author, typeStr, uuid);
+            showToast(`<b>${title}</b> ${i18n.toastSuccess}`, 'success');
 
-        } catch(e) {
-            alert("Download Failed! Check console (F12) for details.");
+        } catch (e) {
+            showToast(`${i18n.toastFail} ${e.message}`, 'error', 8000);
             logFailure("Download Process", e, uuid);
         } finally {
-            toggleDownload(scope, false);
+            scope.vm.toggleDownload.toggling = false;
+            scope.$apply();
+
+            setTimeout(() => {
+                btn.disabled = false;
+                btn.classList.remove('is-loading');
+                btn.querySelector('.btn-label').textContent = i18n.btnDownload;
+                if (progressBar) progressBar.style.width = '0%';
+            }, 600);
         }
     }
 
-    document.addEventListener('click', e => {
-        let el = e.target;
-        if(el.tagName === 'SPAN') el = el.parentNode.parentNode;
-        else if(el.tagName === 'A') el = el.parentNode;
-
-        if(el.tagName === 'LI' && el.classList.contains('stream-tile__actions-download')) {
-            e.stopPropagation();
-            const scope = unsafeWindow.angular.element(el).scope();
-            downloadItem(scope);
-        }
-    }, true);
-
-
-
     function addCustomDownloadButtons() {
-        const allLists = document.querySelectorAll('.gallery-details__actions');
-        allLists.forEach(ul => {
+        document.querySelectorAll('.gallery-details__actions').forEach(ul => {
             if (ul.querySelector('.custom-download-btn')) return;
 
-            const newLi = document.createElement('li');
-            newLi.className = 'stream-tile__actions-item custom-download-li';
+            const li  = document.createElement('li');
+            li.className = 'stream-tile__actions-item custom-download-li';
 
             const btn = document.createElement('button');
-            btn.textContent = 'Download';
-            btn.classList.add('custom-download-btn');
+            btn.className = 'custom-download-btn';
+            btn.innerHTML = `<span class="btn-label">${i18n.btnDownload}</span><span class="btn-progress"></span>`;
 
-            btn.addEventListener('mousedown', () => {
-                btn.style.borderBottom = '1px solid #0056a3';
-                btn.style.transform = 'scale(0.98)';
-            });
-            btn.addEventListener('mouseup', () => {
-                btn.style.borderBottom = '4px solid #0056a3';
-                btn.style.transform = 'scale(1)';
-            });
-            btn.addEventListener('mouseleave', () => {
-                btn.style.borderBottom = '4px solid #0056a3';
-                btn.style.transform = 'scale(1)';
-            });
-
-            btn.addEventListener('click', ev => {
+            btn.addEventListener('click', async ev => {
                 ev.stopPropagation();
-                let scopeEl = ul;
-                let scope;
-                while(scopeEl && scopeEl !== document.documentElement) {
-                    const tempScope = unsafeWindow.angular.element(scopeEl).scope();
-                    if(tempScope && tempScope.vm && tempScope.vm.uuid) {
-                        scope = tempScope;
-                        break;
-                    }
+                if (btn.disabled) return;
+
+                let scopeEl = ul, scope;
+                let depth = 0;
+                while (scopeEl && depth++ < 20) {
+                    const s = unsafeWindow.angular?.element(scopeEl)?.scope();
+                    if (s?.vm?.uuid) { scope = s; break; }
                     scopeEl = scopeEl.parentElement;
                 }
 
-                if (!scope || !scope.vm || !scope.vm.uuid) {
-                    console.warn("TS4 Downloader: Failed to find Angular scope.");
+                if (!scope?.vm?.uuid) {
+                    showToast(i18n.toastNoScope, 'warn');
+                    console.warn("TS4 Downloader: Angular scope not found.");
                     return;
                 }
-                downloadItem(scope);
+
+                await downloadItem(scope, btn);
             });
 
-            newLi.appendChild(btn);
-            ul.appendChild(newLi);
+            li.appendChild(btn);
+            ul.appendChild(li);
         });
     }
 
+    function initObserver() {
+        let debounce;
+        new MutationObserver(() => {
+            clearTimeout(debounce);
+            debounce = setTimeout(addCustomDownloadButtons, 150);
+        }).observe(document.body, { childList: true, subtree: true });
+        addCustomDownloadButtons();
+    }
 
-    setInterval(addCustomDownloadButtons, 1500);
+    function showWelcomeModal() {
+        if (localStorage.getItem('ts4_gallery_seen_version') === CURRENT_VERSION) return;
 
+        const modal = document.createElement('div');
+        modal.id = 'ts4-glass-modal';
+        modal.innerHTML = `
+            <div class="ts4-glass-content">
+                <div class="ts4-glass-header">${i18n.modalTitle}</div>
+                <div class="ts4-glass-body">
+                    <p>${i18n.modalBody}</p>
+                    <div class="ts4-meta">
+                        ${i18n.modalVersion} <b>${CURRENT_VERSION}</b><br>
+                        ${i18n.modalDeveloper} <b>nrksu1tan</b>
+                    </div>
+                    <p style="font-size: 13.5px; color: #666; margin-bottom: 24px;">
+                        ${i18n.modalThanks}
+                    </p>
+                </div>
+                <div class="ts4-btn-row">
+                    <a class="ts4-btn-link" href="${GITHUB_REPO_URL}" target="_blank">${i18n.modalBtnStar}</a>
+                    <button class="ts4-btn-primary" id="ts4-close-btn">${i18n.modalBtnClose}</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
 
-    const a = document.createElement('a');
-    a.href = 'https://www.thesims.com/login?redirectUri=' + encodeURIComponent(document.location);
-    a.innerHTML = '<b>force login</b>';
-    Object.assign(a.style, {
-        background: 'grey',
-        color: 'white',
-        display: 'inline-block',
-        position: 'absolute',
-        top: '0',
-        left: '0',
-        height: '40px',
-        lineHeight: '40px',
-        padding: '0 15px',
-        zIndex: 99999
-    });
-    document.body.appendChild(a);
+        document.getElementById('ts4-close-btn').addEventListener('click', () => {
+            modal.style.opacity = '0';
+            modal.style.transition = 'opacity 0.25s ease';
+            localStorage.setItem('ts4_gallery_seen_version', CURRENT_VERSION);
+            setTimeout(() => modal.remove(), 280);
+        });
+    }
 
+    function checkForUpdates() {
+        const now = Date.now();
+        if (now - parseInt(localStorage.getItem('ts4_update_check_time') || '0') < 86400000) return;
+
+        GM.xmlHttpRequest({
+            method: 'GET',
+            url: GITHUB_RAW_URL + '?t=' + now,
+            onload: res => {
+                localStorage.setItem('ts4_update_check_time', String(now));
+                if (res.status !== 200) return;
+                const match = res.responseText.match(/@version\s+([\d.]+)/);
+                if (match && isNewerVersion(match[1], CURRENT_VERSION)) {
+                    showToast(
+                        `${i18n.updateText} <b>${match[1]}</b> — <a href="${GITHUB_RAW_URL}" target="_blank">${i18n.updateBtn}</a>`,
+                        'info',
+                        0
+                    );
+                }
+            }
+        });
+    }
+
+    const loginBtn = document.createElement('a');
+    loginBtn.href = 'https://www.thesims.com/login?redirectUri=' + encodeURIComponent(location.href);
+    loginBtn.innerHTML = i18n.forceLogin;
+    loginBtn.className = 'ts4-login-btn';
+    document.body.appendChild(loginBtn);
 
     (async () => {
-        await loadProtobuf();
-        console.log('%c TS4 Gallery Downloader v' + CURRENT_VERSION + ' Ready', 'color: #2ecc71; font-weight: bold; font-size: 14px;');
-        setTimeout(showWelcomeModal, 1000);
-        checkForUpdates();
+        try {
+            await protobufRoot;
+            console.log(`%c TS4 Gallery Downloader v${CURRENT_VERSION} Ready`, 'color:#2ecc71;font-weight:bold;font-size:14px;');
+            initObserver();
+            setTimeout(showWelcomeModal, 800);
+            checkForUpdates();
+        } catch (e) {
+            console.error('TS4 Downloader: Critical init error', e);
+            showToast(i18n.toastInitFail, 'error', 0);
+        }
     })();
 
 })();
