@@ -1,9 +1,8 @@
 // ==UserScript==
-// @name        TS4 Gallery Downloader — Fixed & Enhanced Edition
+// @name        TS4 Gallery Downloader — Fixed & Enhanced Edition v3.6.1 hotfix
 // @description Enhanced version with parallel image loading, toast notifications, download protection, semver updates, and i18n — build by nrksu1tan.
 // @author      anadius + modifications from nrksu1tan
-// @match       *://www.ea.com/*/games/the-sims/the-sims-4/pc/gallery*
-// @match       *://www.ea.com/games/the-sims/the-sims-4/pc/gallery*
+// @match       *://www.ea.com/*games/the-sims/the-sims-4/pc/gallery*
 // @connect     sims4cdn.ea.com
 // @connect     athena.thesims.com
 // @connect     www.thesims.com
@@ -12,7 +11,7 @@
 // @connect     github.com
 // @downloadURL https://raw.githubusercontent.com/nrksu1tan/TS4-gallery-downloader/main/mod%20versions/TS4%20Gallery%20Downloader%20%E2%80%94%20Fixed%20%26%20Enhanced.user.js
 // @updateURL   https://raw.githubusercontent.com/nrksu1tan/TS4-gallery-downloader/main/mod%20versions/TS4%20Gallery%20Downloader%20%E2%80%94%20Fixed%20%26%20Enhanced.user.js
-// @version     3.5
+// @version     3.6.1
 // @namespace   anadius.github.io
 // @grant       unsafeWindow
 // @grant       GM.xmlHttpRequest
@@ -34,7 +33,10 @@
 (function () {
     'use strict';
 
-    const CURRENT_VERSION = "3.5";
+
+    if (!/\/games\/the-sims\/the-sims-4\/pc\/gallery/.test(location.pathname)) return;
+
+    const CURRENT_VERSION = "3.6.1";
     const GITHUB_REPO_URL = "https://github.com/nrksu1tan/TS4-gallery-downloader";
     const GITHUB_ISSUES_URL = "https://github.com/nrksu1tan/TS4-gallery-downloader/issues/new";
     const GITHUB_RAW_URL = "https://raw.githubusercontent.com/nrksu1tan/TS4-gallery-downloader/main/mod%20versions/TS4%20Gallery%20Downloader%20%E2%80%94%20Fixed%20%26%20Enhanced.user.js";
@@ -139,7 +141,6 @@
     .ts4-btn-link { color: #333; font-size: 14px; font-weight: 600; cursor: pointer; text-decoration: none; padding: 10px 16px; border-radius: 10px; transition: all 0.2s; border: 1px solid #ddd; display: flex; align-items: center; gap: 6px; }
     .ts4-btn-link:hover { background: #f8f9fa; border-color: #ccc; }
 
-    /* Redesigned Force Login Button */
     .ts4-login-btn {
         position: fixed; top: 12px; left: 12px; z-index: 99999;
         background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(4px);
@@ -279,70 +280,82 @@
         } catch { return Long.fromValue(0); }
     }
 
+
     async function parseMessageObj(obj, className) {
-        const root = await protobufRoot;
-        const msgClass = root.lookupType(className);
-        const parsed = {};
+    const root = await protobufRoot;
+    const msgClass = root.lookupType(className);
+    const parsed = {};
 
-        for (const key of Object.keys(obj)) {
-            const snakeKey = key.replace(/[A-Z]/g, c => `_${c.toLowerCase()}`);
-            const fieldKey = msgClass.fields[key] ? key : msgClass.fields[snakeKey] ? snakeKey : null;
-            if (!fieldKey) continue;
 
-            const field = msgClass.fields[fieldKey];
-            const val   = obj[key];
+    for (const key of Object.keys(obj)) {
+        const snakeKey = key.replace(/[A-Z]/g, c => `_${c.toLowerCase()}`);
+        const fieldKey = msgClass.fields[key] ? key : msgClass.fields[snakeKey] ? snakeKey : null;
+        if (!fieldKey) continue;
 
-            if (Array.isArray(val)) {
-                parsed[fieldKey] = await Promise.all(val.map(v =>
-                    typeof v === 'object' && v !== null
-                        ? parseMessageObj(v, field.type).then(r => r[0])
-                        : Promise.resolve(coerceScalar(v, field.type))
-                ));
-            } else if (typeof val === 'object' && val !== null) {
-                [parsed[fieldKey]] = await parseMessageObj(val, field.type);
-            } else {
+        const field = msgClass.fields[fieldKey];
+        const val   = obj[key];
+
+        if (Array.isArray(val)) {
+            parsed[fieldKey] = await Promise.all(val.map(v =>
+                typeof v === 'object' && v !== null
+                    ? parseMessageObj(v, field.type).then(r => r[0])
+                    : Promise.resolve(coerceScalar(v, field.type))
+            ));
+        } else if (typeof val === 'object' && val !== null) {
+            [parsed[fieldKey]] = await parseMessageObj(val, field.type);
+        } else {
+            let isEnum = false;
+            try {
+                const enumType = root.lookupEnum(field.type);
+                if (enumType && typeof val === 'string') {
+                    parsed[fieldKey] = enumType.values[val.split('.').pop()];
+                    isEnum = true;
+                }
+            } catch (e) { /* ignore */ }
+
+            if (!isEnum) {
                 parsed[fieldKey] = coerceScalar(val, field.type);
             }
         }
-
-        if (className.includes("WebTraitTracker")) {
-            for (const f of ['icon_key', 'cas_selected_icon_key', 'icon', 'icon_high_res']) {
-                if (!msgClass.fields[f]) continue;
-                if (!parsed[f] || typeof parsed[f] !== 'object') {
-                    parsed[f] = { type: 0, group: 0, instance: Long.fromValue(0) };
-                } else {
-                    if (!Long.isLong(parsed[f].instance)) parsed[f].instance = Long.fromValue(0);
-                    parsed[f].type  = parsed[f].type  ?? 0;
-                    parsed[f].group = parsed[f].group ?? 0;
-                }
-            }
-        }
-
-        for (const [fieldName, field] of Object.entries(msgClass.fields)) {
-            if (parsed[fieldName] !== undefined && parsed[fieldName] !== null) {
-                if (field.type?.includes('ResourceKey')) {
-                    const rk = parsed[fieldName];
-                    if (rk && !Long.isLong(rk.instance)) {
-                        rk.instance = coerceScalar(rk.instance, 'uint64');
-                    }
-                }
-                continue;
-            }
-            if (field.repeated) {
-                parsed[fieldName] = [];
-            } else if (LONG_TYPES.includes(field.type)) {
-                parsed[fieldName] = Long.fromValue(0);
-            } else if (['uint32','int32','float','double'].includes(field.type)) {
-                parsed[fieldName] = 0;
-            } else if (field.type === 'bool') {
-                parsed[fieldName] = false;
-            } else if (field.resolvedType?.fields) {
-                [parsed[fieldName]] = await parseMessageObj({}, field.type);
-            }
-        }
-
-        return [parsed, msgClass];
     }
+
+    if (className.includes("WebTraitTracker")) {
+        for (const f of ['icon_key', 'cas_selected_icon_key', 'icon', 'icon_high_res']) {
+            if (!msgClass.fields[f]) continue;
+            if (!parsed[f] || typeof parsed[f] !== 'object') {
+                parsed[f] = { type: 0, group: 0, instance: Long.fromValue(0) };
+            } else {
+                if (!Long.isLong(parsed[f].instance)) parsed[f].instance = Long.fromValue(0);
+                parsed[f].type  = parsed[f].type  ?? 0;
+                parsed[f].group = parsed[f].group ?? 0;
+            }
+        }
+    }
+
+    for (const [fieldName, field] of Object.entries(msgClass.fields)) {
+        if (parsed[fieldName] !== undefined && parsed[fieldName] !== null) {
+            if (field.type?.includes('ResourceKey')) {
+                const rk = parsed[fieldName];
+                if (rk && !Long.isLong(rk.instance)) {
+                    rk.instance = coerceScalar(rk.instance, 'uint64');
+                }
+            }
+            continue;
+        }
+
+        if (field.repeated) {
+            parsed[fieldName] = [];
+        } else if (LONG_TYPES.includes(field.type)) {
+            parsed[fieldName] = Long.fromValue(0);
+        } else if (['uint32','int32','float','double'].includes(field.type)) {
+            parsed[fieldName] = 0;
+        } else if (field.type === 'bool') {
+            parsed[fieldName] = false;
+        }
+    }
+
+    return [parsed, msgClass];
+}
 
     async function getTrayItem(uuid) {
         const message = await xhr({
@@ -566,6 +579,11 @@
         }
     }
 
+    // Получаем Angular element API с фоллбэком на window.angular
+    function getAngularElement() {
+        return unsafeWindow?.angular?.element ?? window?.angular?.element ?? null;
+    }
+
     function addCustomDownloadButtons() {
         document.querySelectorAll('.gallery-details__actions').forEach(ul => {
             if (ul.querySelector('.custom-download-btn')) return;
@@ -581,17 +599,26 @@
                 ev.stopPropagation();
                 if (btn.disabled) return;
 
+                const angularEl = getAngularElement();
+                if (!angularEl) {
+                    showToast(i18n.toastNoScope, 'warn');
+                    console.warn("TS4 Downloader: Angular not found on page.");
+                    return;
+                }
+
                 let scopeEl = ul, scope;
                 let depth = 0;
                 while (scopeEl && depth++ < 20) {
-                    const s = unsafeWindow.angular?.element(scopeEl)?.scope();
-                    if (s?.vm?.uuid) { scope = s; break; }
+                    try {
+                        const s = angularEl(scopeEl)?.scope();
+                        if (s?.vm?.uuid) { scope = s; break; }
+                    } catch (_) { /* ignore per-element errors */ }
                     scopeEl = scopeEl.parentElement;
                 }
 
                 if (!scope?.vm?.uuid) {
                     showToast(i18n.toastNoScope, 'warn');
-                    console.warn("TS4 Downloader: Angular scope not found.");
+                    console.warn("TS4 Downloader: Angular scope with uuid not found.");
                     return;
                 }
 
