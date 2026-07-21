@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name        TS4 Gallery Downloader — Fixed & Enhanced Edition v3.6.1 hotfix
+// @name        TS4 Gallery Downloader — Fixed & Enhanced Edition v3.6.6 hotfix
 // @description Enhanced version with parallel image loading, toast notifications, download protection, semver updates, and i18n — build by nrksu1tan.
 // @author      anadius + modifications from nrksu1tan
-// @match       *://www.ea.com/*games/the-sims/the-sims-4/pc/gallery*
+// @match       *://www.ea.com/*games/the-sims/the-sims-4/gallery*
 // @connect     sims4cdn.ea.com
 // @connect     athena.thesims.com
 // @connect     www.thesims.com
@@ -11,7 +11,7 @@
 // @connect     github.com
 // @downloadURL https://raw.githubusercontent.com/nrksu1tan/TS4-gallery-downloader/main/mod%20versions/TS4%20Gallery%20Downloader%20%E2%80%94%20Fixed%20%26%20Enhanced.user.js
 // @updateURL   https://raw.githubusercontent.com/nrksu1tan/TS4-gallery-downloader/main/mod%20versions/TS4%20Gallery%20Downloader%20%E2%80%94%20Fixed%20%26%20Enhanced.user.js
-// @version     3.6.1
+// @version     3.6.6
 // @namespace   anadius.github.io
 // @grant       unsafeWindow
 // @grant       GM.xmlHttpRequest
@@ -33,10 +33,9 @@
 (function () {
     'use strict';
 
+    if (!/\/games\/the-sims\/the-sims-4\/gallery/.test(location.pathname)) return;
 
-    if (!/\/games\/the-sims\/the-sims-4\/pc\/gallery/.test(location.pathname)) return;
-
-    const CURRENT_VERSION = "3.6.1";
+    const CURRENT_VERSION = "3.6.6";
     const GITHUB_REPO_URL = "https://github.com/nrksu1tan/TS4-gallery-downloader";
     const GITHUB_ISSUES_URL = "https://github.com/nrksu1tan/TS4-gallery-downloader/issues/new";
     const GITHUB_RAW_URL = "https://raw.githubusercontent.com/nrksu1tan/TS4-gallery-downloader/main/mod%20versions/TS4%20Gallery%20Downloader%20%E2%80%94%20Fixed%20%26%20Enhanced.user.js";
@@ -64,32 +63,17 @@
     GM_addStyle(`
     .row { background-image: linear-gradient(#299ed0, #00215dd1); }
     body { background-color: #00000061; }
-    .stream-tile--container { margin-bottom: 25px !important; position: relative; overflow: hidden; transition: transform 0.2s ease; }
-    .stream-tile { background: #ffffff; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); padding: 10px; transition: transform 0.2s ease; position: relative; }
-    .stream-tile--container:hover .stream-tile { transform: translateY(-4px); box-shadow: 0 8px 15px rgba(0,0,0,0.15); }
-    .scaled-image__container { border-radius: 6px; overflow: hidden; max-height: 200px; margin-bottom: 10px; }
-    .stream-tile__image { width: 100%; height: auto; display: block; }
-    .stream-tile__creator { background: #f4f4f4; padding: 10px; border-radius: 4px; margin-bottom: 10px; cursor: default; position: relative; }
-    .stream-tile__creator-row { display: flex; align-items: center; }
-    .stream-tile__creator-image { width: 40px; height: 40px; border-radius: 50%; margin-right: 10px; border: 2px solid #fff; }
-    .stream-tile__creator-name { display: block; font-size: 0.9rem; color: #333; text-decoration: underline; margin-top: 3px; }
-    .stream-tile__creator-name:hover { text-decoration: none; }
-    .gallery-details__actions { display: flex; justify-content: space-between; align-items: center; margin: 0; padding: 0 5px; list-style: none; }
-    .stream-tile__actions-item { display: inline-flex; align-items: center; }
-    .stream-tile__icon { margin-right: 4px; }
-    .stream-tile__icon--favorite, .stream-tile__icon--download { font-weight: 600; color: #0074d9; }
-    .stream-tile__removed { display: none !important; }
-    .search-browse { margin-bottom: 2.5rem; margin-top: 2.3rem; padding: 6.3rem 1.5rem .7rem; position: relative; background-image: linear-gradient(#ffffff 71%, #ffffff00); }
 
     .custom-download-btn {
         position: relative; overflow: hidden; background-color: #2ecc71; color: #fff;
-        padding: 8px 16px; border: none; border-bottom: 3px solid #27ae60; border-radius: 8px;
-        cursor: pointer; font-weight: 700; font-size: 0.9rem; font-family: 'Open Sans', -apple-system, sans-serif;
-        transition: all 0.15s ease; margin: 2px 0 2px 10px; outline: none; white-space: nowrap;
-        min-width: 100px; text-align: center; user-select: none; box-shadow: 0 2px 4px rgba(46, 204, 113, 0.2);
+        padding: 4px 12px; border: none; border-bottom: 2px solid #27ae60; border-radius: 8px;
+        cursor: pointer; font-weight: 700; font-size: 13px; font-family: 'Open Sans', -apple-system, sans-serif;
+        transition: all 0.15s ease; margin-left: auto; outline: none; white-space: nowrap;
+        min-width: 80px; text-align: center; user-select: none; box-shadow: 0 2px 4px rgba(46, 204, 113, 0.2);
+        z-index: 10;
     }
     .custom-download-btn:hover:not(:disabled) { background-color: #27ae60; box-shadow: 0 4px 8px rgba(39, 174, 96, 0.3); }
-    .custom-download-btn:active:not(:disabled) { border-bottom-width: 1px; box-shadow: none; }
+    .custom-download-btn:active:not(:disabled) { border-bottom-width: 1px; box-shadow: none; transform: translateY(1px); }
     .custom-download-btn:disabled { background-color: #a8e6cf; border-bottom-color: #88d4ab; cursor: not-allowed; opacity: 0.9; box-shadow: none; }
     .custom-download-btn.is-loading::after {
         content: ''; position: absolute; top: 0; left: -100%; width: 60%; height: 100%;
@@ -195,7 +179,7 @@
     }
 
     function logSuccess(title, author, type, uuid) {
-        const itemUrl = `https://www.ea.com/games/the-sims/the-sims-4/pc/gallery/${uuid}`;
+        const itemUrl = `https://www.ea.com/games/the-sims/the-sims-4/gallery/${encodeURIComponent(uuid)}`;
         console.group(`%c TS4 Downloader: Downloaded ${title}`, 'color:#2ecc71;font-weight:bold;font-size:13px;');
         console.log('%c Name:',   'color:#999', title);
         console.log('%c Author:', 'color:#999', author);
@@ -217,9 +201,17 @@
 
     const xhr = details => new Promise((resolve, reject) =>
         GM.xmlHttpRequest(Object.assign({ method: 'GET' }, details, {
-            onload:  res => res.status === 404
-                ? reject(new Error(`404 Not Found: ${details.url}`))
-                : resolve(res.response),
+            onload:  res => {
+                if (res.status === 404) {
+                    reject(new Error(`404 Not Found: ${details.url}`));
+                    return;
+                }
+                if (res.status < 200 || res.status >= 300) {
+                    reject(new Error(`HTTP ${res.status} on ${details.url}`));
+                    return;
+                }
+                resolve(res.response);
+            },
             onerror: ()  => reject(new Error(`Network Error: ${details.url}`))
         }))
     );
@@ -236,7 +228,10 @@
     }
 
     function uuid2Guid(uuid) {
-        if (uuid.includes('-')) return uuid.toUpperCase();
+        // Защита от URL-safe Base64: проверяем паттерном, что это именно HEX GUID
+        if (/^[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}$/i.test(uuid)) {
+            return uuid.toUpperCase();
+        }
         try {
             const binary = atob(uuid.replace(/-/g, '+').replace(/_/g, '/'));
             const hex = Array.from(binary, c => c.charCodeAt(0).toString(16).padStart(2, '0')).join('');
@@ -244,6 +239,15 @@
         } catch {
             throw new Error(`Invalid UUID format: ${uuid}`);
         }
+    }
+
+    function hexToBase64(hexStr) {
+        const hex = hexStr.replace(/-/g, '');
+        let binary = '';
+        for (let i = 0; i < hex.length; i += 2) {
+            binary += String.fromCharCode(parseInt(hex.substr(i, 2), 16));
+        }
+        return btoa(binary);
     }
 
     function getFilePath(guid) {
@@ -280,84 +284,83 @@
         } catch { return Long.fromValue(0); }
     }
 
-
     async function parseMessageObj(obj, className) {
-    const root = await protobufRoot;
-    const msgClass = root.lookupType(className);
-    const parsed = {};
+        const root = await protobufRoot;
+        const msgClass = root.lookupType(className);
+        const parsed = {};
 
+        for (const key of Object.keys(obj)) {
+            const snakeKey = key.replace(/[A-Z]/g, c => `_${c.toLowerCase()}`);
+            const fieldKey = msgClass.fields[key] ? key : msgClass.fields[snakeKey] ? snakeKey : null;
+            if (!fieldKey) continue;
 
-    for (const key of Object.keys(obj)) {
-        const snakeKey = key.replace(/[A-Z]/g, c => `_${c.toLowerCase()}`);
-        const fieldKey = msgClass.fields[key] ? key : msgClass.fields[snakeKey] ? snakeKey : null;
-        if (!fieldKey) continue;
+            const field = msgClass.fields[fieldKey];
+            const val   = obj[key];
 
-        const field = msgClass.fields[fieldKey];
-        const val   = obj[key];
-
-        if (Array.isArray(val)) {
-            parsed[fieldKey] = await Promise.all(val.map(v =>
-                typeof v === 'object' && v !== null
-                    ? parseMessageObj(v, field.type).then(r => r[0])
-                    : Promise.resolve(coerceScalar(v, field.type))
-            ));
-        } else if (typeof val === 'object' && val !== null) {
-            [parsed[fieldKey]] = await parseMessageObj(val, field.type);
-        } else {
-            let isEnum = false;
-            try {
-                const enumType = root.lookupEnum(field.type);
-                if (enumType && typeof val === 'string') {
-                    parsed[fieldKey] = enumType.values[val.split('.').pop()];
-                    isEnum = true;
-                }
-            } catch (e) { /* ignore */ }
-
-            if (!isEnum) {
-                parsed[fieldKey] = coerceScalar(val, field.type);
-            }
-        }
-    }
-
-    if (className.includes("WebTraitTracker")) {
-        for (const f of ['icon_key', 'cas_selected_icon_key', 'icon', 'icon_high_res']) {
-            if (!msgClass.fields[f]) continue;
-            if (!parsed[f] || typeof parsed[f] !== 'object') {
-                parsed[f] = { type: 0, group: 0, instance: Long.fromValue(0) };
+            if (Array.isArray(val)) {
+                parsed[fieldKey] = await Promise.all(val.map(v =>
+                    typeof v === 'object' && v !== null
+                        ? parseMessageObj(v, field.type).then(r => r[0])
+                        : Promise.resolve(coerceScalar(v, field.type))
+                ));
+            } else if (typeof val === 'object' && val !== null) {
+                [parsed[fieldKey]] = await parseMessageObj(val, field.type);
             } else {
-                if (!Long.isLong(parsed[f].instance)) parsed[f].instance = Long.fromValue(0);
-                parsed[f].type  = parsed[f].type  ?? 0;
-                parsed[f].group = parsed[f].group ?? 0;
-            }
-        }
-    }
+                let isEnum = false;
+                try {
+                    const enumType = root.lookupEnum(field.type);
+                    if (enumType && typeof val === 'string') {
+                        parsed[fieldKey] = enumType.values[val.split('.').pop()];
+                        isEnum = true;
+                    }
+                } catch (e) { /* ignore */ }
 
-    for (const [fieldName, field] of Object.entries(msgClass.fields)) {
-        if (parsed[fieldName] !== undefined && parsed[fieldName] !== null) {
-            if (field.type?.includes('ResourceKey')) {
-                const rk = parsed[fieldName];
-                if (rk && !Long.isLong(rk.instance)) {
-                    rk.instance = coerceScalar(rk.instance, 'uint64');
+                if (!isEnum) {
+                    parsed[fieldKey] = coerceScalar(val, field.type);
                 }
             }
-            continue;
         }
 
-        if (field.repeated) {
-            parsed[fieldName] = [];
-        } else if (LONG_TYPES.includes(field.type)) {
-            parsed[fieldName] = Long.fromValue(0);
-        } else if (['uint32','int32','float','double'].includes(field.type)) {
-            parsed[fieldName] = 0;
-        } else if (field.type === 'bool') {
-            parsed[fieldName] = false;
+        if (className.includes("WebTraitTracker")) {
+            for (const f of ['icon_key', 'cas_selected_icon_key', 'icon', 'icon_high_res']) {
+                if (!msgClass.fields[f]) continue;
+                if (!parsed[f] || typeof parsed[f] !== 'object') {
+                    parsed[f] = { type: 0, group: 0, instance: Long.fromValue(0) };
+                } else {
+                    if (!Long.isLong(parsed[f].instance)) parsed[f].instance = Long.fromValue(0);
+                    parsed[f].type  = parsed[f].type  ?? 0;
+                    parsed[f].group = parsed[f].group ?? 0;
+                }
+            }
         }
+
+        for (const [fieldName, field] of Object.entries(msgClass.fields)) {
+            if (parsed[fieldName] !== undefined && parsed[fieldName] !== null) {
+                if (field.type?.includes('ResourceKey')) {
+                    const rk = parsed[fieldName];
+                    if (rk && !Long.isLong(rk.instance)) {
+                        rk.instance = coerceScalar(rk.instance, 'uint64');
+                    }
+                }
+                continue;
+            }
+
+            if (field.repeated) {
+                parsed[fieldName] = [];
+            } else if (LONG_TYPES.includes(field.type)) {
+                parsed[fieldName] = Long.fromValue(0);
+            } else if (['uint32','int32','float','double'].includes(field.type)) {
+                parsed[fieldName] = 0;
+            } else if (field.type === 'bool') {
+                parsed[fieldName] = false;
+            }
+        }
+
+        return [parsed, msgClass];
     }
-
-    return [parsed, msgClass];
-}
 
     async function getTrayItem(uuid) {
+        // Серверу EA нужен именно Base64-код, не трогаем регистр
         const message = await xhr({
             url: TRAY_ITEM_URL.replace('{UUID}', encodeURIComponent(uuid)),
             responseType: 'json',
@@ -511,17 +514,12 @@
         return `0x${type.toString(16).padStart(8,'0')}!0x${id.toString(16).padStart(16,'0')}.${ext}`;
     }
 
-    async function downloadItem(scope, btn) {
-        const uuid = scope.vm.uuid;
-
+    async function downloadItem(uuid, btn) {
         btn.disabled = true;
         btn.classList.add('is-loading');
         const progressBar = btn.querySelector('.btn-progress');
         btn.querySelector('.btn-label').textContent = i18n.btnDownloading;
         if (progressBar) progressBar.style.width = '15%';
-
-        scope.vm.toggleDownload.toggling = true;
-        scope.$apply();
 
         try {
             const guid   = uuid2Guid(uuid);
@@ -567,9 +565,6 @@
             showToast(`${i18n.toastFail} ${e.message}`, 'error', 8000);
             logFailure("Download Process", e, uuid);
         } finally {
-            scope.vm.toggleDownload.toggling = false;
-            scope.$apply();
-
             setTimeout(() => {
                 btn.disabled = false;
                 btn.classList.remove('is-loading');
@@ -579,54 +574,49 @@
         }
     }
 
-    // Получаем Angular element API с фоллбэком на window.angular
-    function getAngularElement() {
-        return unsafeWindow?.angular?.element ?? window?.angular?.element ?? null;
+    function extractCreationUuid(card) {
+        // 1. Попытка вытащить Base64-код из ссылки
+        const href = card.getAttribute('href') || '';
+        const itemMatch = href.match(/\/item\/([^/?]+)/i);
+        if (itemMatch) {
+            return decodeURIComponent(itemMatch[1]);
+        }
+
+        // 2. Фоллбэк - берем Hex GUID из превью-изображения и переводим в Base64
+        const img = card.querySelector('img[src*="athena.thesims.com"]');
+        if (img) {
+            const match = img.src.match(/\/([A-F0-9]{8}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{12})\//i);
+            if (match) {
+                return hexToBase64(match[1]);
+            }
+        }
+
+        return null;
     }
 
     function addCustomDownloadButtons() {
-        document.querySelectorAll('.gallery-details__actions').forEach(ul => {
-            if (ul.querySelector('.custom-download-btn')) return;
+        document.querySelectorAll('[class*="UgxCreationCard_metricGroup"]').forEach(container => {
+            if (container.querySelector('.custom-download-btn')) return;
 
-            const li  = document.createElement('li');
-            li.className = 'stream-tile__actions-item custom-download-li';
+            const card = container.closest('a[class*="UgxCreationCard_card"]');
+            if (!card) return;
 
+            const uuid = extractCreationUuid(card);
+            if (!uuid) return;
+            
             const btn = document.createElement('button');
             btn.className = 'custom-download-btn';
             btn.innerHTML = `<span class="btn-label">${i18n.btnDownload}</span><span class="btn-progress"></span>`;
 
             btn.addEventListener('click', async ev => {
-                ev.stopPropagation();
+                ev.preventDefault(); 
+                ev.stopPropagation(); 
                 if (btn.disabled) return;
 
-                const angularEl = getAngularElement();
-                if (!angularEl) {
-                    showToast(i18n.toastNoScope, 'warn');
-                    console.warn("TS4 Downloader: Angular not found on page.");
-                    return;
-                }
-
-                let scopeEl = ul, scope;
-                let depth = 0;
-                while (scopeEl && depth++ < 20) {
-                    try {
-                        const s = angularEl(scopeEl)?.scope();
-                        if (s?.vm?.uuid) { scope = s; break; }
-                    } catch (_) { /* ignore per-element errors */ }
-                    scopeEl = scopeEl.parentElement;
-                }
-
-                if (!scope?.vm?.uuid) {
-                    showToast(i18n.toastNoScope, 'warn');
-                    console.warn("TS4 Downloader: Angular scope with uuid not found.");
-                    return;
-                }
-
-                await downloadItem(scope, btn);
+                await downloadItem(uuid, btn);
             });
 
-            li.appendChild(btn);
-            ul.appendChild(li);
+            container.appendChild(btn);
         });
     }
 
