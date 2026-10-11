@@ -1,6 +1,6 @@
 # TS4 Gallery Downloader: Enhanced Edition
 
-![Version](https://img.shields.io/badge/version-v3.6.6-blue?style=flat-square)
+![Version](https://img.shields.io/badge/version-v3.6.7-blue?style=flat-square)
 ![Userscript](https://img.shields.io/badge/works%20on-EA%20Gallery-5cba47?logo=ea&logoColor=white&style=flat-square)
 ![License](https://img.shields.io/badge/license-MIT-lightgrey?style=flat-square)
 
