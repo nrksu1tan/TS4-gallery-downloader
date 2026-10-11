@@ -1,5 +1,5 @@
 // ==UserScript==
-// @name        TS4 Gallery Downloader — Fixed & Enhanced Edition v3.6.6 hotfix
+// @name        TS4 Gallery Downloader — Fixed & Enhanced Edition v3.6.7
 // @description Enhanced version with parallel image loading, toast notifications, download protection, semver updates, and i18n — build by nrksu1tan.
 // @author      anadius + modifications from nrksu1tan
 // @match       *://www.ea.com/*games/the-sims/the-sims-4/gallery*
@@ -11,7 +11,7 @@
 // @connect     github.com
 // @downloadURL https://raw.githubusercontent.com/nrksu1tan/TS4-gallery-downloader/main/mod%20versions/TS4%20Gallery%20Downloader%20%E2%80%94%20Fixed%20%26%20Enhanced.user.js
 // @updateURL   https://raw.githubusercontent.com/nrksu1tan/TS4-gallery-downloader/main/mod%20versions/TS4%20Gallery%20Downloader%20%E2%80%94%20Fixed%20%26%20Enhanced.user.js
-// @version     3.6.6
+// @version     3.6.7
 // @namespace   anadius.github.io
 // @grant       unsafeWindow
 // @grant       GM.xmlHttpRequest
@@ -35,7 +35,7 @@
 
     if (!/\/games\/the-sims\/the-sims-4\/gallery/.test(location.pathname)) return;
 
-    const CURRENT_VERSION = "3.6.6";
+    const CURRENT_VERSION = "3.6.7";
     const GITHUB_REPO_URL = "https://github.com/nrksu1tan/TS4-gallery-downloader";
     const GITHUB_ISSUES_URL = "https://github.com/nrksu1tan/TS4-gallery-downloader/issues/new";
     const GITHUB_RAW_URL = "https://raw.githubusercontent.com/nrksu1tan/TS4-gallery-downloader/main/mod%20versions/TS4%20Gallery%20Downloader%20%E2%80%94%20Fixed%20%26%20Enhanced.user.js";
@@ -603,20 +603,51 @@
 
             const uuid = extractCreationUuid(card);
             if (!uuid) return;
-            
+
             const btn = document.createElement('button');
             btn.className = 'custom-download-btn';
             btn.innerHTML = `<span class="btn-label">${i18n.btnDownload}</span><span class="btn-progress"></span>`;
 
             btn.addEventListener('click', async ev => {
-                ev.preventDefault(); 
-                ev.stopPropagation(); 
+                ev.preventDefault();
+                ev.stopPropagation();
                 if (btn.disabled) return;
-
                 await downloadItem(uuid, btn);
             });
 
             container.appendChild(btn);
+        });
+
+        document.querySelectorAll('[class*="CreatorPanel_panel"]').forEach(panel => {
+            if (panel.querySelector('.custom-download-btn-detail')) return;
+
+            const itemMatch = location.pathname.match(/\/item\/([^/?]+)/i);
+            if (!itemMatch) return;
+
+            const uuid = decodeURIComponent(itemMatch[1]);
+
+            const btn = document.createElement('button');
+            btn.className = 'custom-download-btn custom-download-btn-detail';
+            btn.innerHTML = `<span class="btn-label">${i18n.btnDownload}</span><span class="btn-progress"></span>`;
+
+            btn.style.width = '100%';
+            btn.style.marginTop = '10px';
+            btn.style.padding = '8px 12px';
+            btn.style.fontSize = '14px';
+
+            btn.addEventListener('click', async ev => {
+                ev.preventDefault();
+                ev.stopPropagation();
+                if (btn.disabled) return;
+                await downloadItem(uuid, btn);
+            });
+
+            const termsText = panel.querySelector('[class*="CreatorPanel_termsText"]');
+            if (termsText) {
+                panel.insertBefore(btn, termsText);
+            } else {
+                panel.appendChild(btn);
+            }
         });
     }
 
